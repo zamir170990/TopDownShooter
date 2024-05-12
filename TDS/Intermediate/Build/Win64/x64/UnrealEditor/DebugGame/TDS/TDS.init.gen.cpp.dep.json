@@ -1,0 +1,13 @@
+{
+    "Version": "1.2",
+    "Data": {
+        "Source": "d:\\unrealengineproject\\tds\\intermediate\\build\\win64\\unrealeditor\\inc\\tds\\uht\\tds.init.gen.cpp",
+        "ProvidedModule": "",
+        "PCH": "d:\\unrealengineproject\\tds\\intermediate\\build\\win64\\x64\\tdseditor\\debuggame\\engine\\sharedpch.engine.nonoptimized.cpp20.h.pch",
+        "Includes": [
+            "d:\\unrealengineproject\\tds\\intermediate\\build\\win64\\x64\\unrealeditor\\debuggame\\tds\\definitions.tds.h"
+        ],
+        "ImportedModules": [],
+        "ImportedHeaderUnits": []
+    }
+}

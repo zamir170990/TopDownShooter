@@ -1,0 +1,8 @@
+{
+	"SourceFiles": [
+		"D:\\UnrealEngineProject\\TDS\\Source\\TDS\\TDS.Build.cs",
+		"D:\\UnrealEngineProject\\TDS\\Source\\TDS.Target.cs",
+		"D:\\UnrealEngineProject\\TDS\\Source\\TDSEditor.Target.cs"
+	],
+	"EngineVersion": "5.3.2"
+}
