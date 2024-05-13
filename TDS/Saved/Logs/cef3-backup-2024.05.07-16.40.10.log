@@ -1,4 +1,0 @@
-[0507/193313.567:ERROR:gpu_init.cc(426)] Passthrough is not supported, GL is disabled
-[0507/193747.654:ERROR:gpu_init.cc(426)] Passthrough is not supported, GL is disabled
-[0507/193811.601:WARNING:backend_impl.cc(1837)] Destroying invalid entry.
-[0507/194010.545:ERROR:gpu_init.cc(426)] Passthrough is not supported, GL is disabled

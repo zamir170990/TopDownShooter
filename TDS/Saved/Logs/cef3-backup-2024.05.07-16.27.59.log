@@ -1,5 +1,0 @@
-[0507/192611.553:ERROR:ssl_client_socket_impl.cc(947)] handshake failed; returned -1, SSL error code 1, net_error -101
-[0507/192629.668:ERROR:ssl_client_socket_impl.cc(947)] handshake failed; returned -1, SSL error code 1, net_error -101
-[0507/192720.042:WARNING:dns_config_service_win.cc(712)] Failed to read DnsConfig.
-[0507/192720.048:WARNING:dns_config_service_win.cc(712)] Failed to read DnsConfig.
-[0507/192759.454:ERROR:gpu_init.cc(426)] Passthrough is not supported, GL is disabled
