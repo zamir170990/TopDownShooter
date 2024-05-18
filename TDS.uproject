@@ -16,14 +16,14 @@
 	"Plugins": [
 		{
 			"Name": "ModelingToolsEditorMode",
-			"Enabled": true,
+			"Enabled": false,
 			"TargetAllowList": [
 				"Editor"
 			]
 		},
 		{
 			"Name": "AutoFootstep",
-			"Enabled": true,
+			"Enabled": false,
 			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/66cea07913a248bba0ada8dd73c809b9"
 		},
 		{
@@ -51,7 +51,7 @@
 		},
 		{
 			"Name": "SkeletalMeshModelingTools",
-			"Enabled": true
+			"Enabled": false
 		}
 	]
 }
