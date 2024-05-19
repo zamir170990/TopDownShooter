@@ -36,22 +36,23 @@ void ATDSCharacter::Tick(float DeltaTime)
 
 void ATDSCharacter::SetupPlayerInputComponent(UInputComponent* NewInputComponent)
 {
-  
+    Super::SetupPlayerInputComponent(InputComponent);
+ 
 }
 
-void ATDSCharacter::InputAxisY(float Value)
-{
-    AxisY = Value;
-}
 
-void ATDSCharacter::InputAxisX(float Value)
-{
-    AxisX = Value;
-}
 
 void ATDSCharacter::MovementTick(float Default)
 {
-
+    APlayerController* myController = UGameplayStatics::GetPlayerController(GetWorld(), 0); 
+    if (myController)
+    {
+        FHitResult ResultHit;
+       // myController->GetHitResultUnderCursorByChannel(ETraceTypeQuery::TraceTypeQuery6, false, ResultHit);
+        myController->GetHitResultUnderCursor(ECC_GameTraceChannel11,true, ResultHit);
+        float FindRotaterResultYaw = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), ResultHit.Location).Yaw;
+        SetActorRotation(FQuat(FRotator(0.0f,FindRotaterResultYaw, 0.0f)));
+    }
 }
 
 void ATDSCharacter::CharacterUpdate()

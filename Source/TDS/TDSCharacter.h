@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "CTypes.h"
 #include "GameFramework/Character.h"
+
 #include "TDSCharacter.generated.h"
 
 UCLASS()
@@ -15,8 +16,7 @@ class TDS_API ATDSCharacter : public ACharacter
 public:
     ATDSCharacter();
 private:
-    float AxisX = 0.0f;
-    float AxisY = 0.0f;
+  
 
 
 protected:
@@ -32,8 +32,7 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
     FCharacterSpeed MovementInfo;
 
-    void InputAxisY(float Value);
-    void InputAxisX(float Value);
+ 
     void MovementTick(float Default);
     UFUNCTION(BlueprintCallable)
     void CharacterUpdate();
