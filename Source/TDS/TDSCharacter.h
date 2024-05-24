@@ -44,8 +44,7 @@ public:
     bool bFirePressed = false;
     bool bAimPressed = false;
 
-private:
-public:
+
 
     UPROPERTY(EditDefaultsOnly, Category = "FireAnimation")
     UAnimMontage* FireAnimation;
