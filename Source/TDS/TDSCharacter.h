@@ -6,6 +6,7 @@
 #include "CTypes.h"
 #include "GameFramework/Character.h"
 
+#include "Math/UnrealMathUtility.h"
 #include "TDSCharacter.generated.h"
 
 UCLASS()
@@ -25,6 +26,31 @@ protected:
 public:
     virtual void Tick(float DeltaTime) override;
     virtual void SetupPlayerInputComponent(class UInputComponent* NewInputComponent) override;
+   /////////////////////////////////---INPUT---////////////////////////////////////////////
+    void MoveFB(float Value);
+    void MoveRL(float Value);
+    void Jump();
+    void StopJump();
+    void Aim();
+    void StopAim();
+    void Fire();
+    void StopFire();
+
+
+
+
+
+
+    bool bFirePressed = false;
+    bool bAimPressed = false;
+
+private:
+public:
+
+    UPROPERTY(EditDefaultsOnly, Category = "FireAnimation")
+    UAnimMontage* FireAnimation;
+    UPROPERTY(EditDefaultsOnly, Category = "FireAnimation")
+    UAnimMontage* AimAnimation;
 
 public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
@@ -32,12 +58,12 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
     FCharacterSpeed MovementInfo;
 
+
  
     void MovementTick(float Default);
     UFUNCTION(BlueprintCallable)
     void CharacterUpdate();
     UFUNCTION(BlueprintCallable)
-    //
     void ChangeMovementState(EMovementState NewMovementState);
 };
 
