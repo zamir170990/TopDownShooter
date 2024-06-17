@@ -2,4 +2,23 @@
 
 
 #include "Widget_HP_Stamina.h"
+# include "TDSCharacter.h"
+#include "Kismet/GameplayStatics.h"
 
+float UWidget_HP_Stamina::GetCharacterStamina()
+{
+	ATDSCharacter* OurPlayer = Cast<ATDSCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
+
+	float GetStamina = OurPlayer->Stamina / 100.f;
+
+	return GetStamina;
+}
+
+float UWidget_HP_Stamina::GetCharacterHP()
+{
+	ATDSCharacter* OurPlayer = Cast<ATDSCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
+
+	float GetHP = OurPlayer->HP / 100.f;
+
+	return GetHP;
+}

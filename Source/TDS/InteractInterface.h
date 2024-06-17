@@ -20,4 +20,6 @@ class TDS_API IInteractInterface
 
 	
 public:
+	UFUNCTION(BlueprintNativeEvent) void AddStamina(float AddStamina);
+	UFUNCTION(BlueprintNativeEvent) void AddHP(float AddHP);
 };
