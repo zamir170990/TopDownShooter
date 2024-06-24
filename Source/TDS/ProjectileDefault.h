@@ -32,8 +32,6 @@ public:
 
 	FProjectileInfo ProjectileSetting;
 
-
-
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -42,6 +40,7 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	void InitProjectile(FProjectileInfo InitParam);
 	UFUNCTION()
 	void BulletCollisionSphereHit(class UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 	UFUNCTION()
@@ -49,4 +48,6 @@ public:
 	UFUNCTION()
 	void BulletCollisionSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
+	UFUNCTION()
+	virtual void ImpactProjectile();
 };

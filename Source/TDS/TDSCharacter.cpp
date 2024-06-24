@@ -25,14 +25,6 @@ ATDSCharacter::ATDSCharacter() : Super()
     Camera->SetupAttachment(SpringArm);
 }
 
-void ATDSCharacter::BeginPlay()
-{
-    Super::BeginPlay();
-    
-    InitWeapon(InitWeaponName);
-
-}
-
 void ATDSCharacter::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
@@ -41,49 +33,85 @@ void ATDSCharacter::Tick(float DeltaTime)
     Stamina_HPInfo(DeltaTime);
 }
 
-void ATDSCharacter::InitWeapon(FName IdWeapon)
+void ATDSCharacter::BeginPlay()
 {
-    UTDSGameInstance* myGI = Cast<UTDSGameInstance>(GetGameInstance());
-    FWeaponInfo myWeaponInfo;
-    if (myGI)
+    Super::BeginPlay();
+    
+    InitWeapon(InitWeaponName);
+
+}
+
+void ATDSCharacter::SetupPlayerInputComponent(UInputComponent* NewInputComponent)
+{
+    Super::SetupPlayerInputComponent(NewInputComponent);
+
+    NewInputComponent->BindAxis("MoveFB", this, &ATDSCharacter::MoveFB);
+    NewInputComponent->BindAxis("MoveRL", this, &ATDSCharacter::MoveRL);
+    NewInputComponent->BindAction("Jump",IE_Pressed, this, &ATDSCharacter::Jump);
+    NewInputComponent->BindAction("Jump",IE_Released, this, &ATDSCharacter::StopJump);
+    NewInputComponent->BindAction("Aim", IE_Pressed, this, &ATDSCharacter::Aim);
+    NewInputComponent->BindAction("Aim", IE_Released, this, &ATDSCharacter::StopAim);
+    NewInputComponent->BindAction("Fire", IE_Pressed, this, &ATDSCharacter::Fire);
+    NewInputComponent->BindAction("Fire", IE_Released, this, &ATDSCharacter::StopFire);
+    NewInputComponent->BindAction("Sprint", IE_Pressed, this, &ATDSCharacter::Sprint);
+    NewInputComponent->BindAction("Sprint", IE_Released, this, &ATDSCharacter::StopSprint);
+    NewInputComponent->BindAction("Reload", IE_Released, this, &ATDSCharacter::TryReloadWeapon);
+}
+
+void ATDSCharacter::MovementTick(float Default)
+{
+    AddMovementInput(FVector(1.0f, 0.0f, 0.0f), AxisX);
+    AddMovementInput(FVector(0.0f, 1.0f, 0.0f), AxisY);
+
+    if (MovementState == EMovementState::SprintRun_State)
     {
-        if (myGI->GetWeaponInfoByNAme(IdWeapon,myWeaponInfo))
+        FVector myRotationVector = FVector(AxisX, AxisY, 0.0f);
+        FRotator myRotator = myRotationVector.ToOrientationRotator();
+        SetActorRotation((FQuat(myRotator)));
+    }
+    else
+    {
+        APlayerController* myController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+        if (myController)
         {
-            if (myWeaponInfo.WeaponClass)
+            FHitResult ResultHit;
+            //myController->GetHitResultUnderCursorByChannel(ETraceTypeQuery::TraceTypeQuery6, false, ResultHit);// bug was here Config\DefaultEngine.Ini
+            myController->GetHitResultUnderCursor(ECC_GameTraceChannel1, true, ResultHit);
+
+            float FindRotaterResultYaw = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), ResultHit.Location).Yaw;
+            SetActorRotation(FQuat(FRotator(0.0f, FindRotaterResultYaw, 0.0f)));
+
+            if (CurrentWeapon)
             {
-                FVector SpawnLocation = FVector(0);
-                FRotator SpawnRotation = FRotator(0);
-
-                FActorSpawnParameters SpawnParams;
-                SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-                SpawnParams.Owner = GetOwner();
-                SpawnParams.Instigator = GetInstigator();
-
-                WeaponActor = Cast<AWeaponActor>(GetWorld()->SpawnActor(myWeaponInfo.WeaponClass, &SpawnLocation, &SpawnRotation, SpawnParams));
-                if (WeaponActor)
+                FVector Displacement = FVector(0);
+                switch (MovementState)
                 {
-                    FAttachmentTransformRules Rule(EAttachmentRule::SnapToTarget, false);
-                    WeaponActor->AttachToComponent(GetMesh(), Rule, FName("Bag"));
-                    CurrentWeapon = WeaponActor;
-                    WeaponActor->WeaponSetting = myWeaponInfo;
+                case EMovementState::Aim_State:
+                    Displacement = FVector(0.0f, 0.0f, 160.0f);
+                    CurrentWeapon->ShouldReduceDispersion = true;
+                    break;
+                case EMovementState::AimWalk_State:
+                    CurrentWeapon->ShouldReduceDispersion = true;
+                    Displacement = FVector(0.0f, 0.0f, 160.0f);
+                    break;
+                case EMovementState::Walk_State:
+                    Displacement = FVector(0.0f, 0.0f, 120.0f);
+                    CurrentWeapon->ShouldReduceDispersion = false;
+                    break;
+                case EMovementState::Run_State:
+                    Displacement = FVector(0.0f, 0.0f, 120.0f);
+                    CurrentWeapon->ShouldReduceDispersion = false;
+                    break;
+                case EMovementState::SprintRun_State:
+                    break;
+                default:
+                    break;
                 }
+
+                CurrentWeapon->ShootEndLocation = ResultHit.Location + Displacement;
+                //aim cursor like 3d Widget?
             }
         }
-
-    }
-}
-
-UDecalComponent* ATDSCharacter::GetCursorToWorld()
-{
-    return nullptr;
-}
-
-void ATDSCharacter::TryReloadWeapon()
-{
-    if (CurrentWeapon)
-    {
-        if (CurrentWeapon->GetWeaponRound() <= CurrentWeapon->WeaponSetting.MaxRound)
-            CurrentWeapon->InitReload();
     }
 }
 
@@ -101,6 +129,84 @@ void ATDSCharacter::AttackCharEvent(bool bIsFiring)
 
 void ATDSCharacter::CharacterUpdate()
 {
+    //AWeaponActor* myWeapon = GetCurrentWeapon();
+    //if (myWeapon)
+    //{
+    //    myWeapon->UpdateStateWeapon(MovementState);
+    //}
+    float ResSpeed = 600.0f;
+    switch (MovementState)
+    {
+    case EMovementState::Aim_State:
+        ResSpeed = MovementSpeedInfo.AimSpeed;
+        break;
+    case EMovementState::AimWalk_State:
+        ResSpeed = MovementSpeedInfo.AimSpeedWalk;
+        break;
+    case EMovementState::Walk_State:
+        ResSpeed = MovementSpeedInfo.WalkSpeed;
+        break;
+    case EMovementState::Run_State:
+        ResSpeed = MovementSpeedInfo.RunSpeed;
+        break;
+    case EMovementState::SprintRun_State:
+        ResSpeed = MovementSpeedInfo.SprintRunSpeed;
+        break;
+    default:
+        break;
+    }
+
+    GetCharacterMovement()->MaxWalkSpeed = ResSpeed;
+}
+
+void ATDSCharacter::ChangeMovementState()
+{
+    if (!WalkEnabled && !SprintRunEnabled && !AimEnabled)
+    {
+        MovementState = EMovementState::Run_State;
+    }
+    else
+    {
+        if (SprintRunEnabled)
+        {
+            WalkEnabled = false;
+            AimEnabled = false;
+            MovementState = EMovementState::SprintRun_State;
+        }
+        if (!WalkEnabled && !SprintRunEnabled && !AimEnabled)
+        {
+            MovementState = EMovementState::AimWalk_State;
+        }
+        else
+        {
+            if (!WalkEnabled && !SprintRunEnabled && !AimEnabled)
+            {
+                MovementState = EMovementState::Walk_State;
+            }
+            else
+            {
+                if (!WalkEnabled && !SprintRunEnabled && !AimEnabled)
+                {
+                    MovementState = EMovementState::Aim_State;
+                }
+            }
+        }
+    }
+    CharacterUpdate();
+
+    AWeaponActor* myWeapon = GetCurrentWeapon();
+    if (myWeapon)
+    {
+        myWeapon->UpdateStateWeapon(MovementState);
+    }
+}
+
+void ATDSCharacter::InputAxisY(float Value)
+{
+}
+
+void ATDSCharacter::InputAxisX(float Value)
+{
 }
 
 AWeaponActor* ATDSCharacter::GetCurrentWeapon()
@@ -108,6 +214,85 @@ AWeaponActor* ATDSCharacter::GetCurrentWeapon()
     return CurrentWeapon;
 }
 
+void ATDSCharacter::InitWeapon(FName IdWeaponName)
+{
+    UTDSGameInstance* myGI = Cast<UTDSGameInstance>(GetGameInstance());
+    FWeaponInfo myWeaponInfo;
+    if (myGI)
+    {
+        if (myGI->GetWeaponInfoByNAme(IdWeaponName,myWeaponInfo))
+        {
+            if (myWeaponInfo.WeaponClass)
+            {
+                FVector SpawnLocation = FVector(0);
+                FRotator SpawnRotation = FRotator(0);
+
+                FActorSpawnParameters SpawnParams;
+                SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+                SpawnParams.Owner = GetOwner();
+                SpawnParams.Instigator = GetInstigator();
+
+                AWeaponActor* myWeapon = Cast<AWeaponActor>(GetWorld()->SpawnActor(myWeaponInfo.WeaponClass, &SpawnLocation, &SpawnRotation, SpawnParams));
+                if (WeaponActor)
+                {
+                    FAttachmentTransformRules Rule(EAttachmentRule::SnapToTarget, false);
+                    WeaponActor->AttachToComponent(GetMesh(), Rule, FName("Bag"));
+                    CurrentWeapon = WeaponActor;
+
+                    WeaponActor->WeaponSetting = myWeaponInfo;
+                    WeaponActor->WeaponInfo.Round = myWeaponInfo.MaxRound;
+
+                    //remove !!!! Debag
+                   WeaponActor->ReloadTime = myWeaponInfo.ReloadTime;
+
+                   myWeapon->UpdateStateWeapon(MovementState);
+
+                   myWeapon->OnWeaponReloadStart.AddDynamic(this, &ATDSCharacter::WeaponReloadStart);
+                   myWeapon->OnWeaponReloadEnd.AddDynamic(this, &ATDSCharacter::WeaponReloadEnd);
+                }
+            }
+        }
+
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("ATPSCharacter::InitWeapon - Weapon not found in table -NULL"));
+    }
+}
+
+void ATDSCharacter::TryReloadWeapon()
+{
+    if (CurrentWeapon)
+    {
+        if (CurrentWeapon->GetWeaponRound() <= CurrentWeapon->WeaponSetting.MaxRound)
+            CurrentWeapon->InitReload();
+    }
+}
+
+void ATDSCharacter::WeaponReloadStart(UAnimMontage* Anim)
+{
+    WeaponReloadStart_BP(Anim);
+}
+
+void ATDSCharacter::WeaponReloadEnd()
+{
+    WeaponReloadEnd_BP();
+}
+
+void ATDSCharacter::WeaponReloadStart_BP_Implementation(UAnimMontage* Anim)
+{
+    // in BP
+}
+
+void ATDSCharacter::WeaponReloadEnd_BP_Implementation()
+{
+    // in BP
+}
+
+UDecalComponent* ATDSCharacter::GetCursorToWorld()
+{
+    return nullptr;
+}
 
 void ATDSCharacter::AimSpringArmLength(float DeltaTime)
 {
@@ -130,35 +315,6 @@ bool ATDSCharacter::ForwardVectorsSprint()
     float Tolerance = 350.0f;
     float Error = (FirstVector - SecondVector).Size();
     return Error <= Tolerance;
-}
-
-void ATDSCharacter::SetupPlayerInputComponent(UInputComponent* NewInputComponent)
-{
-    Super::SetupPlayerInputComponent(NewInputComponent);
-
-    NewInputComponent->BindAxis("MoveFB", this, &ATDSCharacter::MoveFB);
-    NewInputComponent->BindAxis("MoveRL", this, &ATDSCharacter::MoveRL);
-    NewInputComponent->BindAction("Jump",IE_Pressed, this, &ATDSCharacter::Jump);
-    NewInputComponent->BindAction("Jump",IE_Released, this, &ATDSCharacter::StopJump);
-    NewInputComponent->BindAction("Aim", IE_Pressed, this, &ATDSCharacter::Aim);
-    NewInputComponent->BindAction("Aim", IE_Released, this, &ATDSCharacter::StopAim);
-    NewInputComponent->BindAction("Fire", IE_Pressed, this, &ATDSCharacter::Fire);
-    NewInputComponent->BindAction("Fire", IE_Released, this, &ATDSCharacter::StopFire);
-    NewInputComponent->BindAction("Sprint", IE_Pressed, this, &ATDSCharacter::Sprint);
-    NewInputComponent->BindAction("Sprint", IE_Released, this, &ATDSCharacter::StopSprint);
-    NewInputComponent->BindAction("Reload", IE_Released, this, &ATDSCharacter::TryReloadWeapon);
-}
-
-void ATDSCharacter::MovementTick(float Default)
-{
-    APlayerController* myController = UGameplayStatics::GetPlayerController(GetWorld(), 0); 
-    if (myController)
-    {
-        FHitResult ResultHit;
-        myController->GetHitResultUnderCursor(ECC_GameTraceChannel11,true, ResultHit);
-        float FindRotaterResultYaw = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), ResultHit.Location).Yaw;
-        SetActorRotation(FQuat(FRotator(0.0f,FindRotaterResultYaw, 0.0f)));
-    }
 }
 
 void ATDSCharacter::SetCharacterSpeed(float SpeedValue)
@@ -241,6 +397,8 @@ void ATDSCharacter::Fire()
         if(bIsAim)
         {
             AttackCharEvent(true);
+        
+            SetCharacterSpeed(SpeedFire);
             AttachToFireSocket();
             bFire = true;
             if (FireAnimation)
@@ -305,6 +463,7 @@ void ATDSCharacter::IncreasedStamina()
         Stamina = CurrentStamina;
     }
 }
+
 void ATDSCharacter::Stamina_HPInfo(float DeltaTime)
 {
     Stamina = FMath::Clamp(Stamina, 0.f, 100.f);

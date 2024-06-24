@@ -61,21 +61,20 @@ public:
     AWeaponActor* CurrentWeapon = nullptr;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Demo")
     FName InitWeaponName;
+
     UDecalComponent* CurrentCursor = nullptr;
 
-    UFUNCTION(BlueprintCallable)
-    void AttackCharEvent(bool bIsFiring);
-    UFUNCTION(BlueprintCallable)
-    void CharacterUpdate();
-    UFUNCTION(BlueprintCallable)
-    AWeaponActor* GetCurrentWeapon();
-    UFUNCTION(BlueprintCallable)
-    void InitWeapon(FName IdWeapon);
-
-    UFUNCTION(BlueprintCallable)
-    UDecalComponent* GetCursorToWorld();
-    UFUNCTION(BlueprintCallable)
-    void TryReloadWeapon();
+    UFUNCTION(BlueprintCallable)void AttackCharEvent(bool bIsFiring);
+    UFUNCTION(BlueprintCallable)void CharacterUpdate();
+    UFUNCTION(BlueprintCallable)void ChangeMovementState();
+    UFUNCTION(BlueprintCallable)void InitWeapon(FName IdWeapon);
+    UFUNCTION(BlueprintCallable)void TryReloadWeapon();
+    UFUNCTION(BlueprintCallable)AWeaponActor* GetCurrentWeapon();
+    UFUNCTION()void WeaponReloadStart(UAnimMontage* Anim);
+    UFUNCTION()void WeaponReloadEnd();
+    UFUNCTION(BlueprintNativeEvent)void WeaponReloadStart_BP(UAnimMontage* Anim);
+    UFUNCTION(BlueprintNativeEvent)void WeaponReloadEnd_BP();
+    UFUNCTION(BlueprintCallable)UDecalComponent* GetCursorToWorld();
 
     /////////////////////////////////---ANIMATION---////////////////////////////////////////////
 
@@ -135,10 +134,13 @@ public:
  
     bool bIsCameraZomm;
 
-    /////////////////////////////////---MovementSpeed---////////////////////////////////////////////
+    /////////////////////////////////---Movement"Speed"---////////////////////////////////////////////
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character Speed")
     float SpeedIdle = 0.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character Speed")
+    float SpeedFire = 150.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Character Speed")
     float SpeedAim = 200.0f;
@@ -150,6 +152,26 @@ public:
     float SpeedRun = 600.0f;
 
     void SetCharacterSpeed(float SpeedValue);
+
+    /////
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+    EMovementState MovementState = EMovementState::Run_State;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+    FCharacterSpeed MovementSpeedInfo;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+    bool SprintRunEnabled = false;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+    bool WalkEnabled = false;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+    bool AimEnabled = false;
+
+    UFUNCTION()
+    void InputAxisY(float Value);
+    UFUNCTION()
+    void InputAxisX(float Value);
+    float AxisX = 0.0f;
+    float AxisY = 0.0f;
 
     /////////////////////////////////---Test---////////////////////////////////////////////
 

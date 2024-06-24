@@ -18,6 +18,10 @@ bool UTDSGameInstance::GetWeaponInfoByNAme(FName NameWeapon, FWeaponInfo& OutInf
 			OutInfo = *WeaponInfoRow;
 		}
 	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UTPSGameInstance::GetWeaponInfoByName - WeaponTable -NULL"));
+	}
 	return bIsFind;
 }
 
