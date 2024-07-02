@@ -15,19 +15,6 @@
 #include "Kismet/GameplayStatics.h"
 #include "Engine/World.h"
 
-
-void ATDSCharacter::AimSpringArmLength(float DeltaTime)
-{
-    if (SpringArm)
-    {
-        if (AimCurrentSpringArmLength != AimTargetSpringArmLength)
-        {
-            AimCurrentSpringArmLength = FMath::FInterpTo(AimCurrentSpringArmLength, AimTargetSpringArmLength, DeltaTime, AimTransitionSpeed);
-            SpringArm->TargetArmLength = AimCurrentSpringArmLength;
-        }
-    }
-}
-
 void ATDSCharacter::DecreasedStamina()
 {
     CurrentStamina = Stamina - MinusStamina;
@@ -137,6 +124,8 @@ void ATDSCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	MovementTick(DeltaSeconds);
+	UpdateSpringArmLength(DeltaSeconds);
+	
 	if (CurrentCursor)
 	{
 		APlayerController* myPC = Cast<APlayerController>(GetController());
@@ -228,6 +217,7 @@ void ATDSCharacter::InputAim()
 		}
 		MovementState = EMovementState::Aim_State;
 		CharacterUpdate();
+		bIsCameraZoom = true;
 	}
 }
 
@@ -241,6 +231,7 @@ void ATDSCharacter::InputStopAim()
 		PlayAnimMontage(IdleWEaponAnimation, 1.0, NAME_None);
 		MovementState = EMovementState::Walk_State;
 		CharacterUpdate();
+		bIsCameraZoom = false;
 	}
 }
 
@@ -586,3 +577,22 @@ void ATDSCharacter::AttachToWeaponReloadSocket()
 		CurrentWeapon->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("ReloadSocket"));
 }
+
+void ATDSCharacter::UpdateSpringArmLength(float DeltaSecond)
+{
+	float TargetLength = bIsCameraZoom ? WeaponSetting.ProjectileSetting.SpringArmAim : WeaponSetting.ProjectileSetting.DefaultArmLength;
+	float CurrentLength = CameraBoom->TargetArmLength;
+	float InterpSpeed = 1.0f;
+
+	float NewLength = FMath::FInterpTo(CurrentLength, TargetLength, DeltaSecond, InterpSpeed);
+	CameraBoom->TargetArmLength = NewLength;
+	UE_LOG(LogTemp, Warning, TEXT("SpringArm Aim Length: %f"), WeaponSetting.ProjectileSetting.SpringArmAim);
+	UE_LOG(LogTemp, Warning, TEXT("Default Arm Length: %f"), WeaponSetting.ProjectileSetting.DefaultArmLength);
+
+}
+
+FProjectileInfo ATDSCharacter::GetWProjectile()
+{
+	return WeaponSetting.ProjectileSetting;
+}
+

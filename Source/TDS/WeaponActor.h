@@ -109,4 +109,5 @@ public:
 	float TraceProjectileDamage = 40.0f;
 	float DamageType = 30.0f;
 	void ApplyDamage(const FHitResult& HitResult);
+
 };

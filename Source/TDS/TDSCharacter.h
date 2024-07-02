@@ -58,6 +58,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	FCharacterSpeed MovementSpeedInfo;
 
+	FProjectileInfo GetWProjectile();
+	UPROPERTY()FWeaponInfo WeaponSetting;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	bool SprintRunEnabled = false;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
@@ -178,15 +181,10 @@ public:
     UPROPERTY(VisibleAnywhere) UCameraComponent* Camera;
 
    UFUNCTION(BlueprintCallable) bool ForwardVectorsSprint();
-
-    void AimSpringArmLength(float DeltaTime);
-    //void MovementTick(float Default);
-
-    float AimCurrentSpringArmLength = 800.0f;
-    float AimTargetSpringArmLength = 800.0f;
-    float AimTransitionSpeed = 1.0f;
  
-    bool bIsCameraZomm;
+    bool bIsCameraZoom = false;
+
+
 
     /////////////////////////////////---Movement"Speed"---////////////////////////////////////////////
 
@@ -196,6 +194,9 @@ public:
 
    bool bIsReloading = false;
 
+
+   void UpdateSpringArmLength(float DeltaSeconds);
+  
 };
 
 

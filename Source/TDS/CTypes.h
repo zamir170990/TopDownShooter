@@ -84,7 +84,10 @@ struct FProjectileInfo
 	float MaxDamageDistance = 1000.0f;        // Дистанция максимального урона
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ProjectileSetting")
 	float DamageFalloffDistance = 2000.0f;    // Дистанция снижения урона
-
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ProjectileSetting")
+	float SpringArmAim = 1300.0f;  // Снайперка
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ProjectileSetting")
+	float DefaultArmLength = 800.0f;
 };
 
 USTRUCT(BlueprintType)
