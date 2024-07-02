@@ -4,7 +4,7 @@
 #include "TDSGameInstance.h"
 
 
-bool UTDSGameInstance::GetWeaponInfoByNAme(FName NameWeapon, FWeaponInfo& OutInfo)
+bool UTDSGameInstance::GetWeaponInfoByName(FName NameWeapon, FWeaponInfo& OutInfo)
 {
 	bool bIsFind = false;
 	FWeaponInfo* WeaponInfoRow;

@@ -28,7 +28,7 @@ public class TDS : ModuleRules
 			"OnlineSubsystemNull" ,
 			"NetCore",
 			"FieldSystemEngine",
-			"GeometryColltionEngine",
+			"GeometryCollectionEngine",
 			"AnimGraphRuntime",
 			"EnhancedInput"
 		});

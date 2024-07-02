@@ -18,15 +18,7 @@ class TDS_API AWeaponActor : public AActor
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite) UStaticMeshComponent* WeaponStaticMesh;
-	UFUNCTION() void Overlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool FromSweep, const FHitResult& HitResult);
 
-	bool bIsWeapon;
-
-	void AttachToCharacterSocket(ACharacter* Character, FName Weapon);
-
-public:
 	AWeaponActor();
 
 	FOnWeaponReloadEnd OnWeaponReloadEnd;
@@ -40,23 +32,16 @@ public:
 	class UStaticMeshComponent* StaticMeshWeapon = nullptr;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"), Category = Components)
 	class UArrowComponent* ShootLocation = nullptr;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"), Category = Components)
+	class UArrowComponent* DropMagazine = nullptr;
 
-	UPROPERTY()
-	FWeaponInfo WeaponSetting;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Info")
-	FAddicionalWeaponInfo WeaponInfo;
-
-
-	bool IsAttachedToCharacter() const;
-	void DetachFromCharacter();
-
+	UPROPERTY()FWeaponInfo WeaponSetting;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Info")FAddicionalWeaponInfo WeaponInfo;
 
 protected:
-
 	virtual void BeginPlay() override;
 
 public:
-
 	virtual void Tick(float DeltaTime) override;
 
 	void FireTick(float DeltaTime);
@@ -67,7 +52,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FireLogic")
 	bool WeaponFiring = false;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ReloadLogic")
 	bool WeaponReloading = false;
 
@@ -81,36 +65,22 @@ public:
 	void Fire();
 
 	void UpdateStateWeapon(EMovementState NewMovementState);
-	//void ChangeDispersion();
 	void ChangeDispersionByShot();
 	float GetCurrentDispersion() const;
-	FVector ApplyDispersionToShoot(FVector DispersionShoot) const;
+	FVector ApplyDispersionToShoot(FVector DirectionShoot)const;
+	FVector GetFireEndLocation()const;
+	int8 GetNumberProjectileByShot() const;
 
-	FVector GetFireEndLocation() const;
-	int8 GetNumberProjectileByShot();
-
+	//Timers
 	float FireTimer = 0.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ReloadLogic")
 	float ReloadTimer = 0.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ReloadLogic Debug")	//Remove !!! Debug
+		float ReloadTime = 0.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ReloadLogic")
-	float ReloadTime = 0.0f;
-
-	UFUNCTION(BlueprintCallable)
-	int32 GetWeaponRound();
-	void InitReload();
-	void FinishReload();
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debag")
-	bool ShowDebug = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debag")
-	float SizeVectorToChangeShootDirectionLogic = 100.0f;
-
-
-	// Flads
+	//flags
 	bool BlockFire = false;
-	//Despersion
+	//Dispersion
 	bool ShouldReduceDispersion = false;
 	float CurrentDispersion = 0.0f;
 	float CurrentDispersionMax = 1.0f;
@@ -119,11 +89,24 @@ public:
 	float CurrentDispersionReduction = 0.1f;
 
 	FVector ShootEndLocation = FVector(0);
-	/// <summary>
-	/// //////////////
-	/// </summary>
-	FVector DirectionShoot = FVector::ForwardVector;
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetWeaponRound();
+	void InitReload();
+	void FinishReload();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
+	bool ShowDebug = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
+	float SizeVectorToChangeShootDirectionLogic = 100.0f;
+
+	void ReloadMagazineDrop();
+	void FireShellBullets();
+	void TimeReloadMagazineDrop();
 
 
-
+	float TraceProjectileDamage = 40.0f;
+	float DamageType = 30.0f;
+	void ApplyDamage(const FHitResult& HitResult);
 };
