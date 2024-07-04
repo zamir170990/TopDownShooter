@@ -195,8 +195,12 @@ public:
    bool bIsReloading = false;
 
 
-   void UpdateSpringArmLength(float DeltaSeconds);
-  
+   float TargetSpringArmLength = 800.0f;
+   float MaxSpringArmLength = 1300.0f;
+   float MinSpringArmLength = 800.0f;
+   float InterpSpeed = 2.0f;
+   void  UpdateSpringArmLengthForAim(float DeltaTime);
+
 };
 
 

@@ -118,13 +118,15 @@ ATDSCharacter::ATDSCharacter()
 
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;
+
+
 }
 
 void ATDSCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	MovementTick(DeltaSeconds);
-	UpdateSpringArmLength(DeltaSeconds);
+	UpdateSpringArmLengthForAim(DeltaSeconds);
 	
 	if (CurrentCursor)
 	{
@@ -578,21 +580,40 @@ void ATDSCharacter::AttachToWeaponReloadSocket()
 	CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("ReloadSocket"));
 }
 
-void ATDSCharacter::UpdateSpringArmLength(float DeltaSecond)
-{
-	float TargetLength = bIsCameraZoom ? WeaponSetting.ProjectileSetting.SpringArmAim : WeaponSetting.ProjectileSetting.DefaultArmLength;
-	float CurrentLength = CameraBoom->TargetArmLength;
-	float InterpSpeed = 1.0f;
-
-	float NewLength = FMath::FInterpTo(CurrentLength, TargetLength, DeltaSecond, InterpSpeed);
-	CameraBoom->TargetArmLength = NewLength;
-	UE_LOG(LogTemp, Warning, TEXT("SpringArm Aim Length: %f"), WeaponSetting.ProjectileSetting.SpringArmAim);
-	UE_LOG(LogTemp, Warning, TEXT("Default Arm Length: %f"), WeaponSetting.ProjectileSetting.DefaultArmLength);
-
-}
-
 FProjectileInfo ATDSCharacter::GetWProjectile()
 {
 	return WeaponSetting.ProjectileSetting;
 }
+
+void ATDSCharacter::UpdateSpringArmLengthForAim(float DeltaTime)
+{
+	if(bIsAim && CurrentWeapon)
+	{
+		APlayerController* PC = Cast<APlayerController>(GetController());
+		if (PC)
+		{
+			FHitResult Hit;
+			PC->GetHitResultUnderCursor(ECC_Visibility, true, Hit);
+			FVector CursorLocation = Hit.ImpactPoint;
+			FVector CharacterLocation = GetActorLocation();
+			float DistanceToCursor = FVector::Dist(CursorLocation, CharacterLocation);
+			const float DistanceThreshold = 700.0f; 
+			if (DistanceToCursor > DistanceThreshold)
+			{
+				TargetSpringArmLength = FMath::FInterpTo(CameraBoom->TargetArmLength, MaxSpringArmLength, DeltaTime, InterpSpeed);//+длина
+			}
+			else
+			{
+				TargetSpringArmLength = FMath::FInterpTo(CameraBoom->TargetArmLength, MinSpringArmLength, DeltaTime, InterpSpeed);//-длинна
+			}
+		}
+		CameraBoom->TargetArmLength = TargetSpringArmLength;
+	}
+	if (!bIsAim)
+	{
+		CameraBoom->TargetArmLength = TargetSpringArmLength;
+		TargetSpringArmLength = FMath::FInterpTo(CameraBoom->TargetArmLength, MinSpringArmLength, DeltaTime, InterpSpeed);//-длинна
+	}
+}
+
 
