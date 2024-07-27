@@ -103,3 +103,33 @@ public:
 	 UParticleSystemComponent* ParticleEmitter = nullptr;
 };
 
+UCLASS()
+class TDS_API UTDS_StateEffect_ExecuteStun : public UTDS_StateEffect
+{
+	GENERATED_BODY()
+public:
+
+	bool InitObject(AActor* Actor) override;
+	void DestroyObject() override;
+	void DestroyEffectVisual();
+
+	virtual void Execute();
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting TimerStun")
+	float TimerStun = 8.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting TimerStun")
+	float TimerEndEffect = 8.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting TimerStun")
+	float TimerStunRate = 1.0f;
+	bool bIsImmortal;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting TimerStun")
+	USoundBase* EffectSound = nullptr;
+
+	FTimerHandle TimerHandle_ExecuteTimerStun;
+	FTimerHandle TimerHandle_EffectTimerStun;
+	FTimerHandle TimerHandle_EffectTimerEnd;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting TimerStun")
+	UParticleSystem* ParticleEffect = nullptr;
+
+	UParticleSystemComponent* ParticleEmitter = nullptr;
+};

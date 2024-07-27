@@ -173,6 +173,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "FireAnimation")UAnimMontage* ReloadAnimation;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dead")TArray<UAnimMontage*> DeadsAnim;
 
+	/*UPROPERTY(EditDefaultsOnly, Category = "FireAnimation")UAnimMontage* StunAnim;
+	UFUNCTION(BlueprintNativeEvent)
+	void StunEffect();
+	UFUNCTION(BlueprintNativeEvent)
+	void StunEffectEnd();*/
+
     /////////////////////////////////---HP---////////////////////////////////////////////
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	bool bIsAlive = true;

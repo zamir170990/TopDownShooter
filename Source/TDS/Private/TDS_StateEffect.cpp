@@ -4,6 +4,7 @@
 #include "TDS_StateEffect.h"
 #include "TDSHealthComponent.h"
 #include "TDS_IGameActor.h"
+//#include "TDSCharacter.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
@@ -163,8 +164,55 @@ void UTDS_StateEffect_ExecuteImmortal::Execute()
 			myHealthComp->ChangeHealthValueImmortal(bIsImmortal);
 		}
 	}
-	
 }
 
 //STUN
 
+bool UTDS_StateEffect_ExecuteStun::InitObject(AActor* Actor)
+{
+	Super::InitObject(Actor);
+
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle_EffectTimerStun, this, &UTDS_StateEffect_ExecuteStun::DestroyObject, TimerStun, false);
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle_ExecuteTimerStun, this, &UTDS_StateEffect_ExecuteStun::Execute, TimerStunRate, true);
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle_EffectTimerEnd, this, &UTDS_StateEffect_ExecuteStun::DestroyEffectVisual, TimerEndEffect, false);
+
+	if (ParticleEffect)
+	{
+		FName NameBoneToAttached;
+		FVector Loc;
+		Loc = FVector(0.0f, 0.0f, -100.0f);
+
+		ParticleEmitter = UGameplayStatics::SpawnEmitterAttached(ParticleEffect, myActor->GetRootComponent(), NameBoneToAttached, Loc, FRotator::ZeroRotator, EAttachLocation::SnapToTarget, false);
+	}
+	return true;
+}
+
+void UTDS_StateEffect_ExecuteStun::DestroyObject()
+{
+	//ATDSCharacter* myCharacter;
+	//if (myCharacter)
+	//{
+	//	myCharacter->StunEffectEnd();
+	//}
+	Super::DestroyObject();
+}
+
+void UTDS_StateEffect_ExecuteStun::DestroyEffectVisual()
+{
+	ParticleEmitter->DestroyComponent();
+	ParticleEmitter = nullptr;
+	Super::DestroyEffectVisual();
+}
+
+void UTDS_StateEffect_ExecuteStun::Execute()
+{
+	if (EffectSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(GetWorld(), EffectSound, FVector(0));
+	}
+	/*ATDSCharacter* myCharacter;
+	if (myCharacter)
+	{
+		myCharacter->StunEffect();
+	}*/
+}
