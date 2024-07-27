@@ -760,18 +760,18 @@ void ATDSCharacter::Stamina_HPInfo(float DeltaTime)
 
 }
 
-//void ATDSCharacter::StunEffect()
-//{
-//	if (StunAnim)
-//	{
-//		PlayAnimMontage(StunAnim, 1.0, NAME_None);
-//	}
-//}
-//
-//void ATDSCharacter::StunEffectEnd()
-//{
-//	StopAnimMontage(StunAnim);
-//}
+void ATDSCharacter::StunEffect()
+{
+	if (StunAnim)
+	{
+		PlayAnimMontage(StunAnim, 1.0, NAME_None);
+	}
+}
+
+void ATDSCharacter::StunEffectEnd()
+{
+	StopAnimMontage(StunAnim);
+}
 
 void ATDSCharacter::AddStamina_Implementation(float AddStamina)
 {

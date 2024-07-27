@@ -9,7 +9,7 @@ public class TDS : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" });
-       // PublicIncludePaths.AddRange(new string[] {"TDS"});
+        PublicIncludePaths.AddRange(new string[] {"TDS"});
         PrivateDependencyModuleNames.AddRange(new string[] 
 		{ 
 

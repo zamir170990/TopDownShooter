@@ -4,7 +4,7 @@
 #include "TDS_StateEffect.h"
 #include "TDSHealthComponent.h"
 #include "TDS_IGameActor.h"
-//#include "TDSCharacter.h"
+#include "TDSCharacter.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
@@ -189,11 +189,11 @@ bool UTDS_StateEffect_ExecuteStun::InitObject(AActor* Actor)
 
 void UTDS_StateEffect_ExecuteStun::DestroyObject()
 {
-	//ATDSCharacter* myCharacter;
-	//if (myCharacter)
-	//{
-	//	myCharacter->StunEffectEnd();
-	//}
+	ATDSCharacter* myCharacter;
+	if (myCharacter)
+	{
+		myCharacter->StunEffectEnd();
+	}
 	Super::DestroyObject();
 }
 
@@ -210,9 +210,9 @@ void UTDS_StateEffect_ExecuteStun::Execute()
 	{
 		UGameplayStatics::PlaySoundAtLocation(GetWorld(), EffectSound, FVector(0));
 	}
-	/*ATDSCharacter* myCharacter;
+	ATDSCharacter* myCharacter;
 	if (myCharacter)
 	{
 		myCharacter->StunEffect();
-	}*/
+	}
 }
