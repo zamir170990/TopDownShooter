@@ -5,7 +5,6 @@
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "Kismet/GameplayStatics.h"
 
-
 AProjectileDefault::AProjectileDefault()
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
@@ -62,8 +61,6 @@ void AProjectileDefault::InitProjectile(FProjectileInfo InitParam)
 	BulletProjectileMovement->InitialSpeed = InitParam.ProjectileInitSpeed;
 	BulletProjectileMovement->MaxSpeed = InitParam.ProjectileInitSpeed;
 	this->SetLifeSpan(InitParam.ProjectileLifeTime);
-
-	ProjectileSetting = InitParam;
 	if (InitParam.ProjectileStaticMesh)
 	{
 		BulletMesh->SetStaticMesh(InitParam.ProjectileStaticMesh);
@@ -82,7 +79,6 @@ void AProjectileDefault::InitProjectile(FProjectileInfo InitParam)
 		BulletFX->DestroyComponent();
 
 	
-
 	ProjectileSetting = InitParam;
 }
 
@@ -98,7 +94,7 @@ void AProjectileDefault::BulletCollisionSphereHit(UPrimitiveComponent* HitComp, 
 
 			if (myMaterial && OtherComp)
 			{
-				UGameplayStatics::SpawnDecalAttached(myMaterial, FVector(20.0f), OtherComp, NAME_None, Hit.ImpactPoint, Hit.ImpactNormal.Rotation(), EAttachLocation::KeepWorldPosition, 10.0f);
+				UGameplayStatics::SpawnDecalAttached(myMaterial, FVector(20.0f), OtherComp, NAME_None, Hit.ImpactPoint, Hit.ImpactNormal.Rotation(), EAttachLocation::KeepWorldPosition,10.0f);
 			}
 		}
 		if (ProjectileSetting.HitFXs.Contains(mySurfacetype))
@@ -114,10 +110,12 @@ void AProjectileDefault::BulletCollisionSphereHit(UPrimitiveComponent* HitComp, 
 			UGameplayStatics::PlaySoundAtLocation(GetWorld(), ProjectileSetting.HitSound, Hit.ImpactPoint);
 		}
 
+		UCTypes::AddEffectBySurfaceType(Hit.GetActor(), ProjectileSetting.Effect, mySurfacetype);
 	}
-	UGameplayStatics::ApplyDamage(OtherActor, ProjectileSetting.ProjectileDamage, GetInstigatorController(), this, NULL);
+	UGameplayStatics::ApplyPointDamage(OtherActor, ProjectileSetting.ProjectileDamage, Hit.TraceStart, Hit, GetInstigatorController(), this, NULL);
 	ImpactProjectile();
 }
+
 
 void AProjectileDefault::BulletCollisionSphereBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {

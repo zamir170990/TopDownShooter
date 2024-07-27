@@ -2,6 +2,12 @@
 #include "ProjectileDefault_Grenade.h"
  #include "Kismet/GameplayStatics.h"
 
+int32 DebugExplodeShow = 0;
+FAutoConsoleVariableRef CVARExplodeShow(
+	TEXT("TPS.DebugExplode"),
+	DebugExplodeShow,
+	TEXT("Draw Debug for Explode"),
+	ECVF_Cheat);
 
 void AProjectileDefault_Grenade::BeginPlay()
 {
@@ -42,32 +48,31 @@ void AProjectileDefault_Grenade::ImpactProjectile()
 
 void AProjectileDefault_Grenade::Explose()
 {
+	/*if (DebugExplodeShow)
+	{
+		DrawDebugSphere(GetWorld(), GetActorLocation(), ProjectileSetting.ProjectileMinRadiusDamage, 12, FColor::Green, false, 12.0f);
+		DrawDebugSphere(GetWorld(), GetActorLocation(), ProjectileSetting.ProjectileMaxRadiusDamage, 12, FColor::Red, false, 12.0f);
+	}*/
 	TimerEnabled = false;
-	if (ProjectileSetting.ExploseFX)
+	if (ProjectileSetting.ExplodeFX)
 	{
-		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ProjectileSetting.ExploseFX, GetActorLocation(), GetActorRotation(), FVector(1.0f));
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ProjectileSetting.ExplodeFX, GetActorLocation(), GetActorRotation(), FVector(1.0f));
 	}
-	if (ProjectileSetting.ExploseSound)
+	if (ProjectileSetting.ExplodeSound)
 	{
-		UGameplayStatics::PlaySoundAtLocation(GetWorld(), ProjectileSetting.ExploseSound, GetActorLocation());
+		UGameplayStatics::PlaySoundAtLocation(GetWorld(), ProjectileSetting.ExplodeSound, GetActorLocation());
 	}
-	DebugExplosionRadius();
+
 	TArray<AActor*> IgnoredActor;
 	UGameplayStatics::ApplyRadialDamageWithFalloff(GetWorld(),
-		ProjectileSetting.ExploseMaxDamage,
-		ProjectileSetting.ExploseMaxDamage * ProjectileSetting.DamageFalloffCoefficient,
-		GetActorLocation(),
-		ProjectileSetting.MaxDamageDistance,
-		ProjectileSetting.DamageFalloffDistance,
+		ProjectileSetting.ExplodeMaxDamage,
+		ProjectileSetting.ExplodeMaxDamage * 0.2f,
+		GetActorLocation(),1000.0f,2000.0f,
+		/*ProjectileSetting.ProjectileMinRadiusDamage,
+		ProjectileSetting.ProjectileMaxRadiusDamage,*/
 		5,
 		NULL, IgnoredActor, nullptr, nullptr);
 
 	this->Destroy();
 }
-void AProjectileDefault_Grenade::DebugExplosionRadius()
-{
-		float HalfDamageRadius = ProjectileSetting.MaxDamageDistance + ((ProjectileSetting.DamageFalloffDistance - ProjectileSetting.MaxDamageDistance) / 2);
-		DrawDebugSphere(GetWorld(), GetActorLocation(), ProjectileSetting.MaxDamageDistance, 12, FColor::Red, false, 10.0f);
-		DrawDebugSphere(GetWorld(), GetActorLocation(), HalfDamageRadius, 12, FColor::Yellow, false, 10.0f);
-		DrawDebugSphere(GetWorld(), GetActorLocation(), ProjectileSetting.DamageFalloffDistance, 12, FColor::Green, false, 10.0f);
-}
+

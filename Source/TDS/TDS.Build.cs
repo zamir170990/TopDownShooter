@@ -9,9 +9,10 @@ public class TDS : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" });
-
-		PrivateDependencyModuleNames.AddRange(new string[] 
+        PublicIncludePaths.AddRange(new string[] {"TDS"});
+        PrivateDependencyModuleNames.AddRange(new string[] 
 		{ 
+
 			"Core",
 			"CoreUObject",
 			"Engine",
@@ -41,4 +42,5 @@ public class TDS : ModuleRules
 
 		// To include OnlineSubsystemSteam, add it to the plugins section in your uproject file with the Enabled attribute set to true
 	}
+
 }

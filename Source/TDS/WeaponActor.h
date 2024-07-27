@@ -9,8 +9,9 @@
 #include "WeaponActor.generated.h"
 
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeaponReloadStart, UAnimMontage*, Anim);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnWeaponReloadEnd);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeaponFireStart, UAnimMontage*, AnimFireChar);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeaponReloadStart, UAnimMontage*, AnimReloadChar);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnWeaponReloadEnd, bool, bIsSuccess, int32, AmmoSafe);
 
 UCLASS()
 class TDS_API AWeaponActor : public AActor
@@ -21,6 +22,7 @@ public:
 
 	AWeaponActor();
 
+	FOnWeaponFireStart OnWeaponFireStart;
 	FOnWeaponReloadEnd OnWeaponReloadEnd;
 	FOnWeaponReloadStart OnWeaponReloadStart;
 
@@ -36,7 +38,7 @@ public:
 	class UArrowComponent* DropMagazine = nullptr;
 
 	UPROPERTY()FWeaponInfo WeaponSetting;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Info")FAddicionalWeaponInfo WeaponInfo;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Info")FAdditionalWeaponInfo AdditionalWeaponInfo;
 
 protected:
 	virtual void BeginPlay() override;
@@ -47,13 +49,10 @@ public:
 	void FireTick(float DeltaTime);
 	void ReloadTick(float DeltaTime);
 	void DispersionTick(float DeltaTime);
+	void ClipDropTick(float DeltaTime);
+	void ShellDropTick(float DeltaTime);
 
 	void WeaponInit();
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FireLogic")
-	bool WeaponFiring = false;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ReloadLogic")
-	bool WeaponReloading = false;
 
 	UFUNCTION(BlueprintCallable)
 	void SetWeaponStateFire(bool bIsFire);
@@ -61,7 +60,7 @@ public:
 	bool CheckWeaponCanFire();
 
 	FProjectileInfo GetProjectile();
-
+	UFUNCTION()
 	void Fire();
 
 	void UpdateStateWeapon(EMovementState NewMovementState);
@@ -76,7 +75,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ReloadLogic")
 	float ReloadTimer = 0.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ReloadLogic Debug")	//Remove !!! Debug
-		float ReloadTime = 0.0f;
+	float ReloadTime = 0.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FireLogic")
+	bool WeaponFiring = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ReloadLogic")
+	bool WeaponReloading = false;
+    bool WeaponAiming = false;
 
 	//flags
 	bool BlockFire = false;
@@ -88,26 +92,32 @@ public:
 	float CurrentDispersionRecoil = 0.1f;
 	float CurrentDispersionReduction = 0.1f;
 
+	//Timer Drop Magazine on reload
+	bool DropClipFlag = false;
+	float DropClipTimer = -1.0;
+
+	//shell flag
+	bool DropShellFlag = false;
+	float DropShellTimer = -1.0f;
+
 	FVector ShootEndLocation = FVector(0);
 
 	UFUNCTION(BlueprintCallable)
 	int32 GetWeaponRound();
+	UFUNCTION()
 	void InitReload();
 	void FinishReload();
+	void CancelReload();
+
+	bool CheckCanWeaponReload();
+	int8 GetAviableAmmoForReload();
+
+	UFUNCTION()
+	void InitDropMesh(UStaticMesh* DropMesh, FTransform Offset, FVector DropImpulseDirection, float LifeTimeMesh, float ImpulseRandomDispersion, float PowerImpulse, float CustomMass);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
 	bool ShowDebug = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
 	float SizeVectorToChangeShootDirectionLogic = 100.0f;
-
-	void ReloadMagazineDrop();
-	void FireShellBullets();
-	void TimeReloadMagazineDrop();
-
-
-	float TraceProjectileDamage = 40.0f;
-	float DamageType = 30.0f;
-	void ApplyDamage(const FHitResult& HitResult);
-
 };

@@ -14,11 +14,3 @@ float UWidget_HP_Stamina::GetCharacterStamina()
 	return GetStamina;
 }
 
-float UWidget_HP_Stamina::GetCharacterHP()
-{
-	ATDSCharacter* OurPlayer = Cast<ATDSCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
-
-	float GetHP = OurPlayer->HP / 100.f;
-
-	return GetHP;
-}

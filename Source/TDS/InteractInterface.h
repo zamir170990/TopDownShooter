@@ -18,7 +18,7 @@ class TDS_API IInteractInterface
 {
 	GENERATED_BODY()
 
-	
+
 public:
 	UFUNCTION(BlueprintNativeEvent) void AddStamina(float AddStamina);
 	UFUNCTION(BlueprintNativeEvent) void AddHP(float AddHP);

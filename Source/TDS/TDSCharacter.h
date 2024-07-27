@@ -9,13 +9,17 @@
 #include "Camera/CameraComponent.h"
 #include "WeaponActor.h"
 #include "Math/UnrealMathUtility.h"
+#include "InventoryComponent.h"
 #include "InteractInterface.h"
+#include "TDS_IGameActor.h"
+#include "TDSHealthCharacterComponent.h"
+#include "TDS_StateEffect.h"
 #include "TDSCharacter.generated.h"
 
 class AWeaponActor;
 
 UCLASS(Blueprintable)
-class TDS_API ATDSCharacter : public ACharacter, public IInteractInterface
+class TDS_API ATDSCharacter : public ACharacter, public IInteractInterface, public ITDS_IGameActor
 {
     GENERATED_BODY()
 
@@ -25,6 +29,8 @@ protected:
 public:
 	ATDSCharacter();
 
+	FTimerHandle TimerHandle_RagDollTimer;
+
 	virtual void Tick(float DeltaSeconds) override;
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
@@ -33,12 +39,17 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	//FORCEINLINE class UDecalComponent* GetCursorToWorld() { return CursorToWorld; }
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	class UInventoryComponent* InventoryComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	class UTDSHealthCharacterComponent* HealthCharacterComponent;
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* TopDownCameraComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class USpringArmComponent* CameraBoom;
+
 
 	/** A decal that projects to the cursor location. */
 	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -51,15 +62,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cursor")
 	FVector CursorSize = FVector(20.0f, 40.0f, 40.0f);
 
-
 	//Movement
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	EMovementState MovementState = EMovementState::Run_State;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	FCharacterSpeed MovementSpeedInfo;
-
-	FProjectileInfo GetWProjectile();
-	UPROPERTY()FWeaponInfo WeaponSetting;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	bool SprintRunEnabled = false;
@@ -68,14 +75,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	bool AimEnabled = false;
 
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
+	TSubclassOf<UTDS_StateEffect> AbilityEffect;
 	//Weapon	
 	AWeaponActor* CurrentWeapon = nullptr;
-
-	//for demo 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Demo")
-	FName InitWeaponName;
-
 	UDecalComponent* CurrentCursor = nullptr;
+
+	//Effect
+	TArray<UTDS_StateEffect*> Effects;
 
 	//Inputs
 	UFUNCTION()
@@ -105,17 +113,24 @@ public:
 	UFUNCTION(BlueprintCallable)
 	AWeaponActor* GetCurrentWeapon();
 	UFUNCTION(BlueprintCallable)
-	void InitWeapon(FName IdWeaponName);
+	void InitWeapon(FName IdWeaponName, FAdditionalWeaponInfo WeaponAdditionalInfo, int32 NewCurrentIndexWeapon);
+	UFUNCTION(BlueprintCallable)
+	void RemoveCurrentWeapon();
 	UFUNCTION(BlueprintCallable)
 	void TryReloadWeapon();
 	UFUNCTION()
 	void WeaponReloadStart(UAnimMontage* Anim);
 	UFUNCTION()
-	void WeaponReloadEnd();
+	void WeaponReloadEnd(bool bIsSuccess, int32 AmmoTake);
 	UFUNCTION(BlueprintNativeEvent)
 	void WeaponReloadStart_BP(UAnimMontage* Anim);
 	UFUNCTION(BlueprintNativeEvent)
-	void WeaponReloadEnd_BP();
+	void WeaponReloadEnd_BP(bool bIsSuccess);
+
+	UFUNCTION()
+	void WeaponFireStart(UAnimMontage* Anim);
+	UFUNCTION(BlueprintNativeEvent)
+	void WeaponFireStart_BP(UAnimMontage* Anim);
 
 	UFUNCTION(BlueprintCallable)
 	UDecalComponent* GetCursorToWorld();
@@ -126,6 +141,9 @@ public:
     void InputStopAim();
     void Sprint();
     void StopSprint();
+	void TrySwitchNextWeapon();
+	void TrySwitchPreviosWeapon();
+	void TryAbilityEnabled();
 
    bool bIsSprint = false;
 
@@ -139,6 +157,10 @@ public:
 	void AttachToIdleWeaponSocket();
 	void AttachToWeaponReloadSocket();
 
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly)
+	int32 CurrentIndexWeapon = 0;
+
+
     bool bIsAim = false;
 
 
@@ -149,18 +171,12 @@ public:
     UPROPERTY(EditDefaultsOnly, Category = "FireAnimation")UAnimMontage* WalkWeaponAnimation;
 	UPROPERTY(EditDefaultsOnly, Category = "FireAnimation")UAnimMontage* IdleWEaponAnimation;
 	UPROPERTY(EditDefaultsOnly, Category = "FireAnimation")UAnimMontage* ReloadAnimation;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dead")TArray<UAnimMontage*> DeadsAnim;
 
     /////////////////////////////////---HP---////////////////////////////////////////////
-
-    virtual void AddHP_Implementation(float AddHP)override;
-
-    void DecreasedHP();
-    void IncreasedHP();
-
-    UPROPERTY(EditDefaultsOnly, Category = "HP")float CurrentHP;
-    UPROPERTY(EditDefaultsOnly, Category = "HP")float MinusHP = 1.0f;
-    UPROPERTY(EditDefaultsOnly, Category = "HP")float PlusHP = 1.0f;
-    UPROPERTY(EditDefaultsOnly, Category = "HP", meta = (ClampMin = "0", ClampMax = "100"))float HP = 100.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	bool bIsAlive = true;
+  
 
     /////////////////////////////////---STAMINA---////////////////////////////////////////////
 
@@ -200,6 +216,24 @@ public:
    float MinSpringArmLength = 800.0f;
    float InterpSpeed = 2.0f;
    void  UpdateSpringArmLengthForAim(float DeltaTime);
+
+	FProjectileInfo GetWProjectile();
+	UPROPERTY()FWeaponInfo WeaponSetting;
+
+
+	//Interface
+	EPhysicalSurface GetSurfuceType() override;
+	TArray<UTDS_StateEffect*> GetAllCurrentEffects() override;
+	void RemoveEffect(UTDS_StateEffect* RemoveEffect)override;
+	void AddEffect(UTDS_StateEffect* newEffect)override;
+	//End Interface
+
+	UFUNCTION()
+	void CharDead();
+	void EnableRagdoll();
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+
+	//stun
 
 };
 

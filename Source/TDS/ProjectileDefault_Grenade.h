@@ -28,5 +28,5 @@ public:
 	float TimerToExplose = 0.0f;
 	float TimeToExplose = 5.0f;
 
-	void DebugExplosionRadius();
+
 };

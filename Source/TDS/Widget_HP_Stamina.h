@@ -15,7 +15,5 @@ class TDS_API UWidget_HP_Stamina : public UUserWidget
 	
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	float GetCharacterStamina();
-	UFUNCTION(BlueprintCallable, BlueprintPure)
-	float GetCharacterHP();
 
 };

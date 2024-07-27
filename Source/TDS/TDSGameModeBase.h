@@ -16,4 +16,6 @@ class TDS_API ATDSGameModeBase : public AGameModeBase
 	GENERATED_BODY()
 
 	ATDSGameModeBase();
+
+	void PlayerCharacterDead();
 };
