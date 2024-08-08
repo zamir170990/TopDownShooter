@@ -17,6 +17,8 @@ class TDS_API UTDS_StateEffect : public UObject
 	GENERATED_BODY()
 	
 public:
+	AActor* myActor = nullptr;
+
 	virtual bool InitObject(AActor* Actor);
 	virtual void DestroyObject();
 	virtual void DestroyEffectVisual();
@@ -26,9 +28,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting")
 	bool bIsStakable = false;
-
-	AActor* myActor = nullptr;
-	
 };
 
 UCLASS()
@@ -44,6 +43,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting Execute Once")
 	float Power = 20.0f;
+
 };
 
 UCLASS()
@@ -64,12 +64,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting ExecuteTimer")
 	float RateTime = 1.0f;
 
-	FTimerHandle TimerHandle_ExecuteTimer;
-	FTimerHandle TimerHandle_EffectTimer;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting ExecuteTimer")
 	UParticleSystem* ParticleEffect = nullptr;
 
 	UParticleSystemComponent* ParticleEmitter = nullptr;
+
+	FTimerHandle TimerHandle_ExecuteTimer;
+	FTimerHandle TimerHandle_EffectTimer;
 };
 
 UCLASS()
@@ -83,26 +84,28 @@ public:
 	 void DestroyEffectVisual();
 
 	 virtual void Execute();
+
 	 UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting TimerImmortal")
 	 float TimerImmortal = 8.0f;
 	 UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting TimerImmortal")
 	 float TimerEndEffect = 8.0f;
 	 UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting TimerImmortal")
 	 float TimerImmortalRate = 1.0f;
-	 bool bIsImmortal;
-	 
-	 UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting TimerImmortal")
-	 USoundBase* EffectSound = nullptr;
 
-	 FTimerHandle TimerHandle_ExecuteTimerImmortal;
-	 FTimerHandle TimerHandle_EffectTimerImmortal;
-	 FTimerHandle TimerHandle_EffectTimerEnd;
+	 bool bIsImmortal;
+
+	 UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting TimerStun")
+	 USoundBase* EffectSound = nullptr;
 	 UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting TimerImmortal")
 	 UParticleSystem* ParticleEffect = nullptr;
 
 	 UParticleSystemComponent* ParticleEmitter = nullptr;
-};
 
+	 FTimerHandle TimerHandle_ExecuteTimerImmortal;
+	 FTimerHandle TimerHandle_EffectTimerImmortal;
+	 FTimerHandle TimerHandle_EffectTimerEnd;
+};
+//////////////////////////////////////// STUN////////////////////////////////////
 UCLASS()
 class TDS_API UTDS_StateEffect_ExecuteStun : public UTDS_StateEffect
 {
@@ -114,22 +117,75 @@ public:
 	void DestroyEffectVisual();
 
 	virtual void Execute();
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting TimerStun")
 	float TimerStun = 8.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting TimerStun")
 	float TimerEndEffect = 8.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting TimerStun")
 	float TimerStunRate = 1.0f;
+
 	bool bIsImmortal;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FireAnimation")UAnimMontage* StunAnim;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting TimerStun")
 	USoundBase* EffectSound = nullptr;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting TimerStun")
+	UParticleSystem* ParticleEffectLeft = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting TimerStun")
+	UParticleSystem* ParticleEffectRight = nullptr;
+
+	UParticleSystemComponent* ParticleEmitterLeft = nullptr;
+	UParticleSystemComponent* ParticleEmitterRight = nullptr;
+
 	FTimerHandle TimerHandle_ExecuteTimerStun;
 	FTimerHandle TimerHandle_EffectTimerStun;
 	FTimerHandle TimerHandle_EffectTimerEnd;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting TimerStun")
+};
+//////////////////////////////////////// Energy ////////////////////////////////////
+UCLASS()
+class TDS_API UTDS_StateEffect_ExecuteEnergy : public UTDS_StateEffect
+{
+	GENERATED_BODY()
+public:
+
+	bool InitObject(AActor* Actor) override;
+	void DestroyObject() override;
+	void DestroyEffectVisual();
+
+	virtual void Execute();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting TimerEnergy")
+	float TimerEnergy = 8.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting TimerEnergy")
+	float TimerEndEffect = 8.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting TimerEnergy")
+	float TimerEnergyRate = 1.0f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Damage")
+	float DamageEnergy = 10.0f;
+
+	bool bIsEnergy;
+
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Array Energy")
+	TMap<AActor*, bool> OverlappingActorsMap;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting Energy")
+	USoundBase* EffectSound = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Setting Energy")
 	UParticleSystem* ParticleEffect = nullptr;
 
 	UParticleSystemComponent* ParticleEmitter = nullptr;
+
+	FTimerHandle TimerHandle_ExecuteTimerEnergy;
+	FTimerHandle TimerHandle_EffectTimerEnergy;
+	FTimerHandle TimerHandle_EffectTimerEnd;
+
+
+	UFUNCTION()
+	void OnEnergyFieldEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	UFUNCTION()
+	void OnEnergyFieldOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 };

@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
-#include "WidgetHUD.h"
 #include "TDSGameModeBase.generated.h"
 
 /**

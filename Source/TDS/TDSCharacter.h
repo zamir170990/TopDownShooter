@@ -5,12 +5,8 @@
 #include "CoreMinimal.h"
 #include "CTypes.h"
 #include "GameFramework/Character.h"
-#include "GameFramework/SpringArmComponent.h"
-#include "Camera/CameraComponent.h"
 #include "WeaponActor.h"
-#include "Math/UnrealMathUtility.h"
 #include "InventoryComponent.h"
-#include "InteractInterface.h"
 #include "TDS_IGameActor.h"
 #include "TDSHealthCharacterComponent.h"
 #include "TDS_StateEffect.h"
@@ -19,12 +15,37 @@
 class AWeaponActor;
 
 UCLASS(Blueprintable)
-class TDS_API ATDSCharacter : public ACharacter, public IInteractInterface, public ITDS_IGameActor
+class TDS_API ATDSCharacter : public ACharacter, public ITDS_IGameActor
 {
     GENERATED_BODY()
 
 protected:
 	virtual void BeginPlay() override;
+
+	//Inputs
+	void InputAxisY(float Value);
+	void InputAxisX(float Value);
+	void InputAttackPressed();
+	void InputAttackReleased();
+	void InputWalkPressed();
+	void InputWalkReleased();
+
+	template<int32 Id>
+	void TKeyPressed()
+	{
+		TrySwitchWeaponToIndexByKeyInput(Id);
+	}
+	bool SprintRunEnabled = false;
+	bool WalkEnabled = false;
+	bool AimEnabled = false;
+
+	AWeaponActor* CurrentWeapon = nullptr;
+
+	UDecalComponent* CurrentCursor = nullptr;
+
+	TArray<UTDS_StateEffect*> Effects;
+
+	int32 CurrentIndexWeapon = 0;
 
 public:
 	ATDSCharacter();
@@ -37,8 +58,7 @@ public:
 
 	FORCEINLINE class UCameraComponent* GetTopDownCameraComponent() const { return TopDownCameraComponent; }
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-	//FORCEINLINE class UDecalComponent* GetCursorToWorld() { return CursorToWorld; }
-
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UInventoryComponent* InventoryComponent;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -49,12 +69,6 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class USpringArmComponent* CameraBoom;
-
-
-	/** A decal that projects to the cursor location. */
-	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	//class UDecalComponent* CursorToWorld;
-
 public:
 	//Cursor
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Cursor")
@@ -68,32 +82,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	FCharacterSpeed MovementSpeedInfo;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	bool SprintRunEnabled = false;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	bool WalkEnabled = false;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	bool AimEnabled = false;
-
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability")
 	TSubclassOf<UTDS_StateEffect> AbilityEffect;
-	//Weapon	
-	AWeaponActor* CurrentWeapon = nullptr;
-	UDecalComponent* CurrentCursor = nullptr;
 
-	//Effect
-	TArray<UTDS_StateEffect*> Effects;
 
-	//Inputs
-	UFUNCTION()
-	void InputAxisY(float Value);
-	UFUNCTION()
-	void InputAxisX(float Value);
-	UFUNCTION()
-	void InputAttackPressed();
-	UFUNCTION()
-	void InputAttackReleased();
 
 	float AxisX = 0.0f;
 	float AxisY = 0.0f;
@@ -110,8 +102,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void ChangeMovementState();
 
-	UFUNCTION(BlueprintCallable)
-	AWeaponActor* GetCurrentWeapon();
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	AWeaponActor* GetCurrentWeapon() const;
 	UFUNCTION(BlueprintCallable)
 	void InitWeapon(FName IdWeaponName, FAdditionalWeaponInfo WeaponAdditionalInfo, int32 NewCurrentIndexWeapon);
 	UFUNCTION(BlueprintCallable)
@@ -157,10 +149,6 @@ public:
 	void AttachToIdleWeaponSocket();
 	void AttachToWeaponReloadSocket();
 
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly)
-	int32 CurrentIndexWeapon = 0;
-
-
     bool bIsAim = false;
 
 
@@ -173,36 +161,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "FireAnimation")UAnimMontage* ReloadAnimation;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dead")TArray<UAnimMontage*> DeadsAnim;
 
-	UPROPERTY(EditDefaultsOnly, Category = "FireAnimation")UAnimMontage* StunAnim;
-	UFUNCTION(BlueprintNativeEvent)
-	void StunEffect();
-	UFUNCTION(BlueprintNativeEvent)
-	void StunEffectEnd();
-
-    /////////////////////////////////---HP---////////////////////////////////////////////
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	bool bIsAlive = true;
-  
-
-    /////////////////////////////////---STAMINA---////////////////////////////////////////////
-
-    virtual void AddStamina_Implementation(float AddStamina)override;
-    void Stamina_HPInfo(float DeltaTime);
-
-    void DecreasedStamina();
-    void IncreasedStamina();
-
-    UPROPERTY(EditDefaultsOnly, Category = "Stamina")float CurrentStamina;
-    UPROPERTY(EditDefaultsOnly, Category = "Stamina")float MinusStamina = 1.0f;
-    UPROPERTY(EditDefaultsOnly, Category = "Stamina")float PlusStamina = 1.0f;
-    UPROPERTY(EditDefaultsOnly, Category = "Stamina", meta = (ClampMin = "0", ClampMax = "100"))float Stamina = 100.0f;
-
    /////////////////////////////////---CAMERA_COMPONENT---////////////////////////////////////////////
 
     UPROPERTY(VisibleAnywhere) USpringArmComponent* SpringArm;
     UPROPERTY(VisibleAnywhere) UCameraComponent* Camera;
 
-   UFUNCTION(BlueprintCallable) bool ForwardVectorsSprint();
+    UFUNCTION(BlueprintCallable) bool ForwardVectorsSprint();
  
     bool bIsCameraZoom = false;
 
@@ -215,6 +179,7 @@ public:
    /////////////////////////////////---Test---////////////////////////////////////////////
 
    bool bIsReloading = false;
+   bool bIsAlive = true;
 
 
    float TargetSpringArmLength = 800.0f;
@@ -234,13 +199,52 @@ public:
 	void AddEffect(UTDS_StateEffect* newEffect)override;
 	//End Interface
 
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	void CharDead();
 	void EnableRagdoll();
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
-	//stun
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	USphereComponent* EnergyFieldComponent;
+
+	float DamageEnergy = 10.0f;
+	bool bIsDebugSphereVisible = true;
+
+	// Метод для обработки наложений
+	UFUNCTION()
+	void OnEnergyFieldOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	EMovementState GetMovementState();
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	TArray<UTDS_StateEffect*> GetCurrentEffectsOnChar();
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	int32 GetCurrentWeaponIndex();
+	bool TrySwitchWeaponToIndexByKeyInput(int32 ToIndex);
+	void DropCurrentWeapon();
+
+	UFUNCTION(BlueprintNativeEvent)
+	void CharDead_BP();
+
+
+	///////////////////Stamina
+	UPROPERTY(BlueprintReadWrite,EditAnywhere)
+	float MaxStamina;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float CurrentStamina;
+	UPROPERTY()
+	bool StaminaRegen;
+	UPROPERTY()
+	bool StaminaDrain;
+	void TimerHandles();
+
+	void StaminaReduce();
+	void StaminaIncrease();
+protected:
+	FTimerHandle StaminaRegenTimerHandle;
+	FTimerHandle StaminaDraiTimerHandle;
 };
 
 

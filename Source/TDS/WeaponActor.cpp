@@ -3,12 +3,15 @@
 #include "DrawDebugHelpers.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "GameFramework/Character.h"
-#include "Engine/SkeletalMeshSocket.h"
 #include "Engine/StaticMeshActor.h"
-#include "GameFramework/DamageType.h"
-#include "TDSCharacter.h"
 #include "InventoryComponent.h"
+
+int32 DebugWeaponShow = 0;
+FAutoConsoleVariableRef CVarWeaponShow(
+	TEXT("TPS.DebugWeapon"),
+	DebugWeaponShow,
+	TEXT("Draw Debug for Weapon"),
+	ECVF_Cheat);
 
 AWeaponActor::AWeaponActor()
 {
@@ -29,8 +32,8 @@ AWeaponActor::AWeaponActor()
 
 	ShootLocation = CreateDefaultSubobject<UArrowComponent>(TEXT("ShootLocation"));
 	ShootLocation -> SetupAttachment(RootComponent);
-	DropMagazine = CreateDefaultSubobject<UArrowComponent>(TEXT("DropMagazine"));
-	DropMagazine->SetupAttachment(RootComponent);
+	/*DropMagazine = CreateDefaultSubobject<UArrowComponent>(TEXT("DropMagazine"));
+	DropMagazine->SetupAttachment(RootComponent);*/
 }
 
 void AWeaponActor::BeginPlay()
@@ -103,8 +106,6 @@ void AWeaponActor::DispersionTick(float DeltaTime)
 			}
 		}
 	}
-	//if (ShowDebug)
-		//UE_LOG(LogTemp, Warning, TEXT("Dispersion: MAX = %f. MIN = %f. Current = %f"), CurrentDispersionMax, CurrentDispersionMin, CurrentDispersion);
 }
 
 void AWeaponActor::ClipDropTick(float DeltaTime)
@@ -179,7 +180,7 @@ void AWeaponActor::Fire()
 
 	if (WeaponSetting.AnimWeaponInfo.AnimWeaponFire
 		&& SkeletalMeshWeapon
-		&& SkeletalMeshWeapon->GetAnimInstance())//Bad Code? maybe best way init local variable or in func
+		&& SkeletalMeshWeapon->GetAnimInstance())
 	{
 		SkeletalMeshWeapon->GetAnimInstance()->Montage_Play(WeaponSetting.AnimWeaponInfo.AnimWeaponFire);
 	}
@@ -203,7 +204,7 @@ void AWeaponActor::Fire()
 	ChangeDispersionByShot();
 
 	OnWeaponFireStart.Broadcast(AnimToPlay);
-
+	
 	UGameplayStatics::SpawnSoundAtLocation(GetWorld(), WeaponSetting.SoundFireWeapon, ShootLocation->GetComponentLocation());
 	UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), WeaponSetting.EffectFireWeapon, ShootLocation->GetComponentTransform());
 
@@ -231,6 +232,8 @@ void AWeaponActor::Fire()
 				FMatrix myMatrix(Dir, FVector(0, 1, 0), FVector(0, 0, 1), FVector::ZeroVector);
 				SpawnRotation = myMatrix.Rotator();
 
+
+
 				FActorSpawnParameters SpawnParams;
 				SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 				SpawnParams.Owner = GetOwner();
@@ -247,7 +250,14 @@ void AWeaponActor::Fire()
 				FHitResult Hit;
 				TArray<AActor*> Actors;
 
-				EDrawDebugTrace::Type DebugTrace = EDrawDebugTrace::None;
+				EDrawDebugTrace::Type DebugTrace;
+				if (DebugWeaponShow)
+				{
+					DrawDebugLine(GetWorld(), SpawnLocation, SpawnLocation + ShootLocation->GetForwardVector() * WeaponSetting.DistacneTrace, FColor::Black, false, 5.f, (uint8)'\000', 0.5f);
+					DebugTrace = EDrawDebugTrace::ForDuration;
+				}
+				else
+					DebugTrace = EDrawDebugTrace::None;
 
 				UKismetSystemLibrary::LineTraceSingle(GetWorld(), SpawnLocation, EndLocation * WeaponSetting.DistacneTrace,
 					ETraceTypeQuery::TraceTypeQuery4, false, Actors, DebugTrace, Hit, true, FLinearColor::Red, FLinearColor::Green, 5.0f);
@@ -279,18 +289,17 @@ void AWeaponActor::Fire()
 						UGameplayStatics::PlaySoundAtLocation(GetWorld(), WeaponSetting.ProjectileSetting.HitSound, Hit.ImpactPoint);
 					}
 
-					UTDS_StateEffect* NewEffect = NewObject<UTDS_StateEffect>(Hit.GetActor(), FName("Effect"));
+					UCTypes::AddEffectBySurfaceType(Hit.GetActor(), ProjectileInfo.Effect, mySurfacetype);
 
 					UGameplayStatics::ApplyPointDamage(Hit.GetActor(), WeaponSetting.ProjectileSetting.ProjectileDamage, Hit.TraceStart, Hit, GetInstigatorController(), this, NULL);
 				}
-			}
 
+			}
 		}
 	}
 
 	if (GetWeaponRound() <= 0 && !WeaponReloading)
 	{
-		//Init Reload
 		if (CheckCanWeaponReload())
 			InitReload();
 	}
@@ -374,33 +383,15 @@ FVector AWeaponActor::GetFireEndLocation() const
 	FVector EndLocation = FVector(0.f);
 
 	FVector tmpV = (ShootLocation->GetComponentLocation() - ShootEndLocation);
-	//UE_LOG(LogTemp, Warning, TEXT("Vector: X = %f. Y = %f. Size = %f"), tmpV.X, tmpV.Y, tmpV.Size());
 
 	if (tmpV.Size() > SizeVectorToChangeShootDirectionLogic)
 	{
 		EndLocation = ShootLocation->GetComponentLocation() + ApplyDispersionToShoot((ShootLocation->GetComponentLocation() - ShootEndLocation).GetSafeNormal()) * -20000.0f;
-		//if (ShowDebug)
-			//DrawDebugCone(GetWorld(), ShootLocation->GetComponentLocation(), -(ShootLocation->GetComponentLocation() - ShootEndLocation), WeaponSetting.DistacneTrace, GetCurrentDispersion() * PI / 180.f, GetCurrentDispersion() * PI / 180.f, 32, FColor::Emerald, false, .1f, (uint8)'\000', 1.0f);
 	}
 	else
 	{
 		EndLocation = ShootLocation->GetComponentLocation() + ApplyDispersionToShoot(ShootLocation->GetForwardVector()) * 20000.0f;
-		//if (ShowDebug)
-			//DrawDebugCone(GetWorld(), ShootLocation->GetComponentLocation(), ShootLocation->GetForwardVector(), WeaponSetting.DistacneTrace, GetCurrentDispersion() * PI / 180.f, GetCurrentDispersion() * PI / 180.f, 32, FColor::Emerald, false, .1f, (uint8)'\000', 1.0f);
 	}
-
-
-	//if (ShowDebug)
-	//{
-	//	//direction weapon look
-	//	DrawDebugLine(GetWorld(), ShootLocation->GetComponentLocation(), ShootLocation->GetComponentLocation() + ShootLocation->GetForwardVector() * 500.0f, FColor::Cyan, false, 5.f, (uint8)'\000', 0.5f);
-	//	//direction projectile must fly
-	//	DrawDebugLine(GetWorld(), ShootLocation->GetComponentLocation(), ShootEndLocation, FColor::Red, false, 5.f, (uint8)'\000', 0.5f);
-	//	//Direction Projectile Current fly
-	//	DrawDebugLine(GetWorld(), ShootLocation->GetComponentLocation(), EndLocation, FColor::Black, false, 5.f, (uint8)'\000', 0.5f);
-	//}
-
-
 	return EndLocation;
 }
 
@@ -436,12 +427,10 @@ void AWeaponActor::InitReload()
 
 	if (WeaponSetting.AnimWeaponInfo.AnimWeaponReload
 		&& SkeletalMeshWeapon
-		&& SkeletalMeshWeapon->GetAnimInstance())//Bad Code? maybe best way init local variable or in func
+		&& SkeletalMeshWeapon->GetAnimInstance())
 	{
 		SkeletalMeshWeapon->GetAnimInstance()->Montage_Play(AnimWeaponToPlay);
 	}
-
-
 	if (WeaponSetting.ClipDropMesh.DropMesh)
 	{
 		DropClipFlag = true;
@@ -459,7 +448,7 @@ void AWeaponActor::FinishReload()
 
 	if (NeedToReload > AviableAmmoFromInventory)
 	{
-		AdditionalWeaponInfo.Round = AviableAmmoFromInventory;
+		AdditionalWeaponInfo.Round += AviableAmmoFromInventory;
 		AmmoNeedTakeFromInv = AviableAmmoFromInventory;
 	}
 	else
@@ -467,7 +456,6 @@ void AWeaponActor::FinishReload()
 		AdditionalWeaponInfo.Round += NeedToReload;
 		AmmoNeedTakeFromInv = NeedToReload;
 	}
-
 	OnWeaponReloadEnd.Broadcast(true, -AmmoNeedTakeFromInv);
 }
 
@@ -493,10 +481,14 @@ bool AWeaponActor::CheckCanWeaponReload()
 			if (!MyInv->CheckAmmoForWeapon(WeaponSetting.WeaponType, AviableAmmoForWeapon))
 			{
 				result = false;
+				MyInv->OnWeaponNotHaveRound.Broadcast(MyInv->GetWeaponIndexSlotByName(IdWeaponName));
+			}
+			else
+			{
+				MyInv->OnWeaponHaveRound.Broadcast(MyInv->GetWeaponIndexSlotByName(IdWeaponName));
 			}
 		}
 	}
-
 	return result;
 }
 
@@ -550,9 +542,6 @@ void AWeaponActor::InitDropMesh(UStaticMesh* DropMesh, FTransform Offset, FVecto
 			NewActor->GetStaticMeshComponent()->Mobility = EComponentMobility::Movable;
 			NewActor->GetStaticMeshComponent()->SetSimulatePhysics(true);
 			NewActor->GetStaticMeshComponent()->SetStaticMesh(DropMesh);
-			//NewActor->GetStaticMeshComponent()->SetCollisionObjectType()
-
-
 
 			NewActor->GetStaticMeshComponent()->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECollisionResponse::ECR_Ignore);
 			NewActor->GetStaticMeshComponent()->SetCollisionResponseToChannel(ECC_GameTraceChannel2, ECollisionResponse::ECR_Ignore);
@@ -560,8 +549,6 @@ void AWeaponActor::InitDropMesh(UStaticMesh* DropMesh, FTransform Offset, FVecto
 			NewActor->GetStaticMeshComponent()->SetCollisionResponseToChannel(ECC_WorldStatic, ECollisionResponse::ECR_Block);
 			NewActor->GetStaticMeshComponent()->SetCollisionResponseToChannel(ECC_WorldDynamic, ECollisionResponse::ECR_Block);
 			NewActor->GetStaticMeshComponent()->SetCollisionResponseToChannel(ECC_PhysicsBody, ECollisionResponse::ECR_Block);
-
-
 
 			if (CustomMass > 0.0f)
 			{

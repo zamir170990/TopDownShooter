@@ -4,12 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Blueprint/UserWidget.h"
 #include "TDSHealthComponent.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChange, float, Health, float, Damage);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDead);
 
-UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
+UCLASS(ClassGroup=(Custom), meta = (BlueprintSpawnableComponent))
 class TDS_API UTDSHealthComponent : public UActorComponent
 {
 	GENERATED_BODY()
@@ -22,7 +23,6 @@ public:
 	FOnHealthChange OnHealthChange;
 	UPROPERTY(BlueprintAssignable, EditAnywhere, BlueprintReadWrite, Category = "Health")
 	FOnDead OnDead;
-
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -39,11 +39,10 @@ public:
 	float GetCurrentHealth();
 	UFUNCTION(BlueprintCallable, Category = "Health")
 	void SetCurrentHealth(float NewHealth);
-
 	UFUNCTION(BlueprintCallable, Category = "Health")
 	virtual void ChangeHealthValue(float ChangeValue);
 
-	//test
+	//Immortal State Effect
 	UFUNCTION(BlueprintCallable, Category = "Health")
 	virtual void ChangeHealthValueImmortal(float ChangeValue);
 	UFUNCTION(BlueprintCallable, Category = "Health")

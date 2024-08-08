@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
 #include "TDS_StateEffect.h"
+#include "CTypes.h"
 #include "TDS_IGameActor.generated.h"
 
 // This class does not need to be modified.
@@ -25,8 +26,13 @@ class TDS_API ITDS_IGameActor
 public:
 
 	virtual EPhysicalSurface GetSurfuceType();
-
 	virtual TArray<UTDS_StateEffect*> GetAllCurrentEffects();
 	virtual void RemoveEffect(UTDS_StateEffect* RemoveEffect);
 	virtual void AddEffect(UTDS_StateEffect* newEffect);
+
+
+	UFUNCTION(BlueprintCallable,BlueprintNativeEvent)
+	void DropWeaponToWorld(FDropItem DropItemInfo);
+	UFUNCTION(BlueprintCallable,BlueprintNativeEvent)
+	void DropAmmoToWorld(EWeaponType TypeAmmo, int32 Count);
 };

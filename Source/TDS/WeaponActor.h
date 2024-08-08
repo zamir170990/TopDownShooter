@@ -63,6 +63,7 @@ public:
 	UFUNCTION()
 	void Fire();
 
+	FName IdWeaponName;
 	void UpdateStateWeapon(EMovementState NewMovementState);
 	void ChangeDispersionByShot();
 	float GetCurrentDispersion() const;

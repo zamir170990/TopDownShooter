@@ -27,9 +27,6 @@ AProjectileDefault::AProjectileDefault()
 	BulletFX = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("Bullet FX"));
 	BulletFX->SetupAttachment(RootComponent);
 
-	//BulletSound = CreateDefaultSubobject<UAudioComponent>(TEXT("Bullet Audio"));
-	//BulletSound->SetupAttachment(RootComponent);
-
 	BulletProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("Bullet ProjectileMovement"));
 	BulletProjectileMovement->UpdatedComponent = RootComponent;
 	BulletProjectileMovement->InitialSpeed = 1.f;

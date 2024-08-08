@@ -14,12 +14,7 @@ ATDSGameModeBase::ATDSGameModeBase() : Super()
 	if (MainCharacterATDSCharacter.Class != NULL)
 	{
 		DefaultPawnClass = MainCharacterATDSCharacter.Class;
-	}
-
-
-	DefaultPawnClass = MainCharacterATDSCharacter.Class;
-	HUDClass = AWidgetHUD::StaticClass();
-	
+	}	
 }
 void ATDSGameModeBase::PlayerCharacterDead()
 {

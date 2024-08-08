@@ -6,12 +6,9 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
-#include "iostream"
 #include "TDSGameInstance.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Actor.h"
-#include "ProjectileDefault.h"
-//#include "HeadMountedDisplayFunctionLibrary.h"
 #include "Materials/Material.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/GameplayStatics.h"
@@ -56,6 +53,30 @@ ATDSCharacter::ATDSCharacter()
 	{
 		HealthCharacterComponent->OnDead.AddDynamic(this, &ATDSCharacter::CharDead);
 	}
+
+	EnergyFieldComponent = CreateDefaultSubobject<USphereComponent>(TEXT("EnergyFieldComponent"));
+	EnergyFieldComponent->InitSphereRadius(200.0f);
+	EnergyFieldComponent->SetCollisionProfileName(TEXT("OverlapAll"));
+	EnergyFieldComponent->SetupAttachment(RootComponent);
+
+	EnergyFieldComponent->OnComponentBeginOverlap.AddDynamic(this, &ATDSCharacter::OnEnergyFieldOverlap);
+	////////////Stamina
+	MaxStamina = 100;
+	CurrentStamina = MaxStamina;
+	StaminaRegen = false;
+	StaminaDrain = false;
+}
+
+void ATDSCharacter::OnEnergyFieldOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (OtherActor && OtherActor != this)
+	{
+		UTDSHealthComponent* HealthComp = Cast<UTDSHealthComponent>(OtherActor->GetComponentByClass(UTDSHealthComponent::StaticClass()));
+		if (HealthComp)
+		{
+			//Урон наносится в Функции StateEffect
+		}
+	}
 }
 
 void ATDSCharacter::Tick(float DeltaSeconds)
@@ -63,7 +84,19 @@ void ATDSCharacter::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 	MovementTick(DeltaSeconds);
 	UpdateSpringArmLengthForAim(DeltaSeconds);
-	
+	if (SprintRunEnabled)
+	{
+		if (!ForwardVectorsSprint())
+		{
+			StopSprint();// Если персонаж больше не может бежать, остановить спринт
+		}
+		if (ForwardVectorsSprint())
+		{
+			Sprint();//Услм персонаж может бежать по данному радиусу то продолжает бег
+		}
+	}
+
+
 	if (CurrentCursor)
 	{
 		APlayerController* myPC = Cast<APlayerController>(GetController());
@@ -77,33 +110,12 @@ void ATDSCharacter::Tick(float DeltaSeconds)
 			CurrentCursor->SetWorldRotation(CursorR);
 		}
 	}
-	if (bIsSprint && ForwardVectorsSprint())
-	{
-		Sprint();
-	}
-	else
-	{
-		StopSprint();
-	}
-	Stamina = FMath::Clamp(Stamina, 0.f, 100.f);
-	if (bIsSprint && Stamina > 0.f)
-	{
-		DecreasedStamina();
-	}
-	else if (!bIsSprint && Stamina < 100.f)
-	{
-		IncreasedStamina();
-	}
-	if (FMath::IsNearlyZero(Stamina))
-	{
-		StopSprint();
-	}
 }
 
 void ATDSCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
+	//AttachToWeaponBagSocket();
 	if (CursorMaterial)
 	{
 		CurrentCursor = UGameplayStatics::SpawnDecalAtLocation(GetWorld(), CursorMaterial, CursorSize, FVector(0));
@@ -138,49 +150,87 @@ void ATDSCharacter::SetupPlayerInputComponent(UInputComponent* NewInputComponent
     NewInputComponent->BindAction("AimEvent", IE_Released, this, &ATDSCharacter::InputStopAim);
     NewInputComponent->BindAction("SprintEvent", IE_Pressed, this, &ATDSCharacter::Sprint);
     NewInputComponent->BindAction("SprintEvent", IE_Released, this, &ATDSCharacter::StopSprint);
-
 	NewInputComponent->BindAction("SwitchNextWeapo", IE_Released, this, &ATDSCharacter::TrySwitchNextWeapon);
 	NewInputComponent->BindAction("SwitchPreviosWeapon", IE_Released, this, &ATDSCharacter::TrySwitchPreviosWeapon);
-
 	NewInputComponent->BindAction(TEXT("AblityAction"), EInputEvent::IE_Pressed, this, &ATDSCharacter::TryAbilityEnabled);
+	NewInputComponent->BindAction(TEXT("DropCurrentWeapon"), EInputEvent::IE_Pressed, this, &ATDSCharacter::DropCurrentWeapon);
+
+	TArray<FKey> HotKeys;
+	HotKeys.Add(EKeys::One);
+	HotKeys.Add(EKeys::Two);
+	HotKeys.Add(EKeys::Three);
+	HotKeys.Add(EKeys::Four);
+	HotKeys.Add(EKeys::Five);
+	HotKeys.Add(EKeys::Six);
+	HotKeys.Add(EKeys::Seven);
+	HotKeys.Add(EKeys::Eight);
+	HotKeys.Add(EKeys::Nine);
+	HotKeys.Add(EKeys::Zero);
+
+	NewInputComponent->BindKey(HotKeys[1], IE_Pressed, this, &ATDSCharacter::TKeyPressed<1>);
+	NewInputComponent->BindKey(HotKeys[2], IE_Pressed, this, &ATDSCharacter::TKeyPressed<2>);
+	NewInputComponent->BindKey(HotKeys[3], IE_Pressed, this, &ATDSCharacter::TKeyPressed<3>);
+	NewInputComponent->BindKey(HotKeys[4], IE_Pressed, this, &ATDSCharacter::TKeyPressed<4>);
+	NewInputComponent->BindKey(HotKeys[5], IE_Pressed, this, &ATDSCharacter::TKeyPressed<5>);
+	NewInputComponent->BindKey(HotKeys[6], IE_Pressed, this, &ATDSCharacter::TKeyPressed<6>);
+	NewInputComponent->BindKey(HotKeys[7], IE_Pressed, this, &ATDSCharacter::TKeyPressed<7>);
+	NewInputComponent->BindKey(HotKeys[8], IE_Pressed, this, &ATDSCharacter::TKeyPressed<8>);
+	NewInputComponent->BindKey(HotKeys[9], IE_Pressed, this, &ATDSCharacter::TKeyPressed<9>);
+	NewInputComponent->BindKey(HotKeys[0], IE_Pressed, this, &ATDSCharacter::TKeyPressed<0>);
+}
+
+void ATDSCharacter::InputWalkPressed()
+{
+	WalkEnabled = true;
+	ChangeMovementState();
+}
+
+void ATDSCharacter::InputWalkReleased()
+{
+	WalkEnabled = false;
+	ChangeMovementState();
 }
 
 void ATDSCharacter::InputAim()
 {
+	AimEnabled = true;
+	ChangeMovementState();
 	if (CurrentWeapon && !bIsReloading)
 	{
-		AttachToAimSocket();
-		bIsAim = true;
+		//AttachToAimSocket();
 		if (AimAnimation)
 		{
 			PlayAnimMontage(AimAnimation, 1.0, NAME_None);
 		}
 		MovementState = EMovementState::Aim_State;
 		CharacterUpdate();
-		bIsCameraZoom = true;
 	}
+		bIsAim = true;
+		bIsCameraZoom = true;
 }
 
 void ATDSCharacter::InputStopAim()
 {
+	AimEnabled = false;
+	ChangeMovementState();
 	if (CurrentWeapon && !bIsReloading)
 	{
 		bIsAim = false;
 		StopAnimMontage(AimAnimation);
-		AttachToIdleWeaponSocket();
+		//AttachToIdleWeaponSocket();
 		PlayAnimMontage(IdleWEaponAnimation, 1.0, NAME_None);
-		MovementState = EMovementState::Walk_State;
+	    GetCharacterMovement()->MaxWalkSpeed = MovementSpeedInfo.WalkSpeedNormal;
 		CharacterUpdate();
-		bIsCameraZoom = false;
 	}
+		bIsCameraZoom = false;
 }
 
 void ATDSCharacter::InputAttackPressed()
 {
-	if (CurrentWeapon && !bIsReloading && bIsAim)
+	if (CurrentWeapon && bIsAlive && !bIsReloading && bIsAim)
 	{
 		AttackCharEvent(true);
-		AttachToFireSocket();
+		//AttachToFireSocket();
 		if (FireAnimation)
 		{
 			PlayAnimMontage(FireAnimation, 1.0, NAME_None);
@@ -195,7 +245,7 @@ void ATDSCharacter::InputAttackReleased()
 	if (CurrentWeapon && !bIsReloading && bIsAim)
 	{
 		AttackCharEvent(false);
-		AttachToAimSocket();
+		//AttachToAimSocket();
 		StopAnimMontage(FireAnimation);
 		PlayAnimMontage(AimAnimation, 1.0, NAME_None);
 		MovementState = EMovementState::Aim_State;
@@ -206,10 +256,17 @@ void ATDSCharacter::InputAttackReleased()
 
 void ATDSCharacter::Sprint()
 {
-	if(!bIsReloading)
+    if (CurrentStamina <= 0)
+    {
+		   return;
+	}
+	StaminaIncrease();
+	TimerHandles();
+	SprintRunEnabled = true;
+	ChangeMovementState();
+	if (!bIsReloading)
 	{
-		ForwardVectorsSprint();
-		AttachToWeaponBagSocket();
+		//AttachToWeaponBagSocket();
 		StopAnimMontage();
 		if (CanSprintForward())
 		{
@@ -220,22 +277,27 @@ void ATDSCharacter::Sprint()
 	}
 }
 
+void ATDSCharacter::StopSprint()
+{
+	StaminaDrain = false;
+	StaminaRegen = true;
+	TimerHandles();
+	SprintRunEnabled = false;
+	ChangeMovementState();
+	bIsSprint = false;
+	GetCharacterMovement()->MaxWalkSpeed = MovementSpeedInfo.WalkSpeedNormal;
+}
+
 bool ATDSCharacter::CanSprintForward()
 {
 	return ForwardVectorsSprint();
 }
 
-
-void ATDSCharacter::StopSprint()
-{
-	bIsSprint = false;
-	GetCharacterMovement()->MaxWalkSpeed = MovementSpeedInfo.WalkSpeedNormal;
-}
-
 void ATDSCharacter::TrySwitchNextWeapon()
 {
-	if (InventoryComponent->WeaponSlots.Num() > 1)
+	if (CurrentWeapon && !CurrentWeapon->WeaponReloading && InventoryComponent->WeaponSlots.Num() > 1)
 	{
+		//We have more then one weapon go switch
 		int8 OldIndex = CurrentIndexWeapon;
 		FAdditionalWeaponInfo OldInfo;
 		if (CurrentWeapon)
@@ -244,9 +306,10 @@ void ATDSCharacter::TrySwitchNextWeapon()
 			if (CurrentWeapon->WeaponReloading)
 				CurrentWeapon->CancelReload();
 		}
+
 		if (InventoryComponent)
 		{
-			if(InventoryComponent->SwitchWeaponToIndex(CurrentIndexWeapon + 1,OldIndex,OldInfo,true))
+			if (InventoryComponent->SwitchWeaponToIndexByNextPreviosIndex(CurrentIndexWeapon + 1, OldIndex, OldInfo, true))
 			{ }
 		}
 	}
@@ -254,8 +317,9 @@ void ATDSCharacter::TrySwitchNextWeapon()
 
 void ATDSCharacter::TrySwitchPreviosWeapon()
 {
-	if (InventoryComponent->WeaponSlots.Num() > 1)
+	if (CurrentWeapon && !CurrentWeapon->WeaponReloading && InventoryComponent->WeaponSlots.Num() > 1)
 	{
+		//We have more then one weapon go switch
 		int8 OldIndex = CurrentIndexWeapon;
 		FAdditionalWeaponInfo OldInfo;
 		if (CurrentWeapon)
@@ -264,11 +328,12 @@ void ATDSCharacter::TrySwitchPreviosWeapon()
 			if (CurrentWeapon->WeaponReloading)
 				CurrentWeapon->CancelReload();
 		}
+
 		if (InventoryComponent)
 		{
-			if (InventoryComponent->SwitchWeaponToIndex(CurrentIndexWeapon - 1, OldIndex, OldInfo,false))
-			{
-			}
+			//InventoryComponent->SetAdditionalInfoWeapon(OldIndex, GetCurrentWeapon()->AdditionalWeaponInfo);
+			if (InventoryComponent->SwitchWeaponToIndexByNextPreviosIndex(CurrentIndexWeapon - 1, OldIndex, OldInfo, false))
+			{ }
 		}
 	}
 }
@@ -362,6 +427,21 @@ void ATDSCharacter::MovementTick(float DeltaTime)
 	}
 }
 
+EMovementState ATDSCharacter::GetMovementState()
+{
+	return MovementState;
+}
+
+TArray<UTDS_StateEffect*> ATDSCharacter::GetCurrentEffectsOnChar()
+{
+	return Effects;
+}
+
+int32 ATDSCharacter::GetCurrentWeaponIndex()
+{
+	return CurrentIndexWeapon;
+}
+
 void ATDSCharacter::AttackCharEvent(bool bIsFiring)
 {
 	AWeaponActor* myWeapon = nullptr;
@@ -441,7 +521,7 @@ void ATDSCharacter::ChangeMovementState()
 	}
 }
 
-AWeaponActor* ATDSCharacter::GetCurrentWeapon()
+AWeaponActor* ATDSCharacter::GetCurrentWeapon() const 
 {
 	return CurrentWeapon;
 }
@@ -462,8 +542,8 @@ void ATDSCharacter::InitWeapon(FName IdWeaponName,FAdditionalWeaponInfo WeaponAd
 		{
 			if (myWeaponInfo.WeaponClass)
 			{
-				FVector SpawnLocation = GetMesh()->GetSocketLocation(FName("Bag"));
-	            FRotator SpawnRotation = GetMesh()->GetSocketRotation(FName("Bag"));
+				FVector SpawnLocation = FVector(0);
+				FRotator SpawnRotation = FRotator(0);
 
 				FActorSpawnParameters SpawnParams;
 				SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -474,40 +554,44 @@ void ATDSCharacter::InitWeapon(FName IdWeaponName,FAdditionalWeaponInfo WeaponAd
 				if (myWeapon)
 				{
 					FAttachmentTransformRules Rule(EAttachmentRule::SnapToTarget, false);
-					myWeapon->AttachToComponent(GetMesh(), Rule, FName("Bag"));
+					myWeapon->AttachToComponent(GetMesh(), Rule, FName("AimSocket"));
 					CurrentWeapon = myWeapon;
 
+					myWeapon->IdWeaponName = IdWeaponName;
 					myWeapon->WeaponSetting = myWeaponInfo;
-					//myWeapon->AdditionalWeaponInfo.Round = myWeaponInfo.MaxRound;
-					//Remove !!! Debug
+
+
 					myWeapon->ReloadTime = myWeaponInfo.ReloadTime;
 					myWeapon->UpdateStateWeapon(MovementState);
 
 					myWeapon->AdditionalWeaponInfo = WeaponAdditionalInfo;
-					//if (InventoryComponent)
-						CurrentIndexWeapon = InventoryComponent->GetWeaponIndexSlotByName(IdWeaponName);
+
+					CurrentIndexWeapon = NewCurrentIndexWeapon;
 
 					myWeapon->OnWeaponReloadStart.AddDynamic(this, &ATDSCharacter::WeaponReloadStart);
 					myWeapon->OnWeaponReloadEnd.AddDynamic(this, &ATDSCharacter::WeaponReloadEnd);
+
 					myWeapon->OnWeaponFireStart.AddDynamic(this, &ATDSCharacter::WeaponFireStart);
 
+					// after switch try reload weapon if needed
 					if (CurrentWeapon->GetWeaponRound() <= 0 && CurrentWeapon->CheckCanWeaponReload())
 						CurrentWeapon->InitReload();
 
 					if (InventoryComponent)
 						InventoryComponent->OnWeaponAmmoAviable.Broadcast(myWeapon->WeaponSetting.WeaponType);
-				
 				}
 			}
 		}
 		else
-			UE_LOG(LogTemp, Warning, TEXT("ATDSCharacter::InitWeapon - Weapon not found in table -NULL"));
+		{
+			UE_LOG(LogTemp, Warning, TEXT("ATPSCharacter::InitWeapon - Weapon not found in table -NULL"));
+		}
 	}
 }
 
 void ATDSCharacter::TryReloadWeapon()
 {
-	if (CurrentWeapon && !CurrentWeapon->WeaponReloading)
+	if (bIsAlive && CurrentWeapon && !CurrentWeapon->WeaponReloading)
 	{
 		if (CurrentWeapon->GetWeaponRound() <= CurrentWeapon->WeaponSetting.MaxRound)
 			CurrentWeapon->InitReload();
@@ -521,7 +605,7 @@ void ATDSCharacter::WeaponReloadStart(UAnimMontage* Anim)
 		if (ReloadAnimation)
 		{
 			PlayAnimMontage(ReloadAnimation, 1.0, NAME_None);
-			AttachToWeaponReloadSocket();
+ 			//AttachToWeaponReloadSocket();
 		}
 }
 
@@ -535,6 +619,43 @@ void ATDSCharacter::WeaponReloadEnd(bool bIsSuccess, int32 AmmoTake)
 	WeaponReloadEnd_BP(bIsSuccess);
 	bIsReloading = false;
 	InputAttackReleased();
+}
+
+bool ATDSCharacter::TrySwitchWeaponToIndexByKeyInput(int32 ToIndex)
+{
+	bool bIsSuccess = false;
+	if (CurrentWeapon && !CurrentWeapon->WeaponReloading && InventoryComponent->WeaponSlots.IsValidIndex(ToIndex))
+	{
+		if (CurrentIndexWeapon != ToIndex && InventoryComponent)
+		{
+			int32 OldIndex = CurrentIndexWeapon;
+			FAdditionalWeaponInfo OldInfo;
+
+			if (CurrentWeapon)
+			{
+				OldInfo = CurrentWeapon->AdditionalWeaponInfo;
+				if (CurrentWeapon->WeaponReloading)
+					CurrentWeapon->CancelReload();
+			}
+			bIsSuccess = InventoryComponent->SwitchWeaponByIndex(ToIndex, OldIndex, OldInfo);
+		}
+	}
+	return bIsSuccess;
+}
+
+void ATDSCharacter::DropCurrentWeapon()
+{
+	if (InventoryComponent)
+	{
+		FDropItem ItemInfo;
+		InventoryComponent->DropWeapobByIndex(CurrentIndexWeapon, ItemInfo);
+	}
+	//AttachToIdleWeaponSocket();
+}
+
+void ATDSCharacter::CharDead_BP_Implementation()
+{
+	// in BP
 }
 
 void ATDSCharacter::WeaponReloadStart_BP_Implementation(UAnimMontage* Anim)
@@ -563,48 +684,48 @@ UDecalComponent* ATDSCharacter::GetCursorToWorld()
 	return CurrentCursor;
 }
 
-void ATDSCharacter::AttachToAimSocket()
-{
-	bIsAim = true;
-	if (CurrentWeapon)
-		CurrentWeapon->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("AimSocket"));
-}
-
-void ATDSCharacter::AttachToWalkWeaponSocket()
-{
-	if (CurrentWeapon)
-		CurrentWeapon->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("WalkWeaponSocket"));
-}
-
-void ATDSCharacter::AttachToFireSocket()
-{
-	if (CurrentWeapon)
-		CurrentWeapon->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("FireSocket"));
-}
-
-void ATDSCharacter::AttachToIdleWeaponSocket()
-{
-	if (CurrentWeapon)
-		CurrentWeapon->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("IdleWalkSocket"));
-}
-
-void ATDSCharacter::AttachToWeaponBagSocket()
-{
-	if (CurrentWeapon)
-		CurrentWeapon->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("Bag"));
-}
-
-void ATDSCharacter::AttachToWeaponReloadSocket()
-{
-	if (CurrentWeapon)
-		CurrentWeapon->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-	CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("ReloadSocket"));
-}
+//void ATDSCharacter::AttachToAimSocket()
+//{
+//	bIsAim = true;
+//	if (CurrentWeapon)
+//		CurrentWeapon->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+//		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("AimSocket"));
+//}
+//
+//void ATDSCharacter::AttachToWalkWeaponSocket()
+//{
+//	if (CurrentWeapon)
+//		CurrentWeapon->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+//		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("WalkWeaponSocket"));
+//}
+//
+//void ATDSCharacter::AttachToFireSocket()
+//{
+//	if (CurrentWeapon)
+//		CurrentWeapon->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+//		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("FireSocket"));
+//}
+//
+//void ATDSCharacter::AttachToIdleWeaponSocket()
+//{
+//	if (CurrentWeapon)
+//		CurrentWeapon->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+//		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("IdleWalkSocket"));
+//}
+//
+//void ATDSCharacter::AttachToWeaponBagSocket()
+//{
+//	if (CurrentWeapon)
+//		CurrentWeapon->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+//		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("Bag"));
+//}
+//
+//void ATDSCharacter::AttachToWeaponReloadSocket()
+//{
+//	if (CurrentWeapon)
+//		CurrentWeapon->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+//	CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("ReloadSocket"));
+//}
 
 void ATDSCharacter::RemoveCurrentWeapon()
 {
@@ -662,9 +783,15 @@ void ATDSCharacter::CharDead()
 
 	bIsAlive = false;
 
+	if (GetController())
+	{
+		GetController()->UnPossess();
+	}
 	UnPossessed();
 	//GetWorldTimerManager().SetTimer(TimerHandle_RagDollTimer, this, &ATDSCharacter::EnableRagdoll, TimeAnim, false);
 	GetCursorToWorld()->SetVisibility(false);
+	AttackCharEvent(false);
+	CharDead_BP();
 }
 
 void ATDSCharacter::EnableRagdoll()
@@ -725,59 +852,33 @@ void ATDSCharacter::UpdateSpringArmLengthForAim(float DeltaTime)
 		TargetSpringArmLength = FMath::FInterpTo(CameraBoom->TargetArmLength, MinSpringArmLength, DeltaTime, InterpSpeed);//-длинна
 	}
 }
+/////////////////Stamina
 
-void ATDSCharacter::DecreasedStamina()
+void ATDSCharacter::TimerHandles()
 {
-	CurrentStamina = Stamina - MinusStamina;
-	Stamina = CurrentStamina;
-	Stamina = FMath::Clamp(Stamina, 0.f, 100.f);
+	GetWorld()->GetTimerManager().SetTimer(StaminaRegenTimerHandle, this, &ATDSCharacter::StaminaReduce, 0.01f, StaminaRegen);
+	GetWorld()->GetTimerManager().SetTimer(StaminaDraiTimerHandle, this, &ATDSCharacter::StaminaIncrease, 0.01f, StaminaDrain);
 }
 
-void ATDSCharacter::IncreasedStamina()
+void ATDSCharacter::StaminaReduce()
 {
-	if (bIsSprint == false)
+	if (CurrentStamina < MaxStamina)
 	{
-		CurrentStamina = Stamina + PlusStamina;
-		Stamina = CurrentStamina;
+		CurrentStamina += 0.05;
 	}
+	else
+		StaminaRegen = false;
 }
 
-void ATDSCharacter::Stamina_HPInfo(float DeltaTime)
+void ATDSCharacter::StaminaIncrease()
 {
-	Stamina = FMath::Clamp(Stamina, 0.f, 100.f);
-	if (bIsSprint && Stamina > 0.f)
+	if (CurrentStamina > 0)
 	{
-		DecreasedStamina();
+		CurrentStamina -= 0.1;
 	}
-	else if (!bIsSprint && Stamina < 100.f)
+	else
 	{
-		IncreasedStamina();
-	}
-	if (FMath::IsNearlyZero(Stamina))
-	{
+		StaminaDrain = false;
 		StopSprint();
 	}
-
 }
-
-void ATDSCharacter::StunEffect()
-{
-	if (StunAnim)
-	{
-		PlayAnimMontage(StunAnim, 1.0, NAME_None);
-	}
-}
-
-void ATDSCharacter::StunEffectEnd()
-{
-	StopAnimMontage(StunAnim);
-}
-
-void ATDSCharacter::AddStamina_Implementation(float AddStamina)
-{
-	if (Stamina < 100)
-	{
-		Stamina = Stamina + AddStamina;
-	}
-}
-

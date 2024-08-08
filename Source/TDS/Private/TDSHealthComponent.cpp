@@ -3,6 +3,8 @@
 
 #include "TDSHealthComponent.h"
 #include "TDS_StateEffect.h"
+#include "Kismet/GameplayStatics.h"
+#include "TDSCharacter.h"
 
 
 // Sets default values for this component's properties
@@ -45,11 +47,11 @@ void UTDSHealthComponent::SetCurrentHealth(float NewHealth)
 
 void UTDSHealthComponent::ChangeHealthValue(float ChangeValue)
 {
-	if(!bIsImmortal)
-	{
+	//if(!bIsImmortal)
+	//{
 		ChangeValue = ChangeValue * CoefDamage;
-
 		Health += ChangeValue;
+		OnHealthChange.Broadcast(Health, ChangeValue);
 
 		if (Health > 100.0f)
 		{
@@ -62,9 +64,7 @@ void UTDSHealthComponent::ChangeHealthValue(float ChangeValue)
 				OnDead.Broadcast();
 			}
 		}
-
-		OnHealthChange.Broadcast(Health, ChangeValue);
-	}
+	//}
 	
 }
 
@@ -73,6 +73,8 @@ void UTDSHealthComponent::ChangeHealthValueImmortal(float ChangeValue)
 	ChangeValue = ChangeValue * CoefImmortal;
 
 	Health += ChangeValue;
+
+	OnHealthChange.Broadcast(Health, ChangeValue);
 
 	if (Health > 100.0f)
 	{
@@ -86,7 +88,6 @@ void UTDSHealthComponent::ChangeHealthValueImmortal(float ChangeValue)
 		}
 	}
 
-	OnHealthChange.Broadcast(Health, ChangeValue);
 	bIsImmortal = true;
 }
 
